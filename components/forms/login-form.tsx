@@ -20,12 +20,15 @@ type FormValues = z.infer<typeof schema>;
 
 export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const router = useRouter();
 
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -34,6 +37,7 @@ export function LoginForm() {
   const onSubmit = async (values: FormValues) => {
     setLoading(true);
     setError(null);
+    setNotice(null);
 
     const supabase = createClient();
     const { data, error: signInError } = await supabase.auth.signInWithPassword(values);
@@ -62,6 +66,35 @@ export function LoginForm() {
     setLoading(false);
   };
 
+  const resendVerification = async () => {
+    const email = getValues("email");
+    if (!email) {
+      setError("Ingresa tu email y luego presiona reenviar.");
+      return;
+    }
+
+    setResending(true);
+    setError(null);
+    setNotice(null);
+
+    const supabase = createClient();
+    const emailRedirectTo = `${window.location.origin}/login`;
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo },
+    });
+
+    if (resendError) {
+      setError(resendError.message);
+      setResending(false);
+      return;
+    }
+
+    setNotice("Te reenviamos el email de verificacion.");
+    setResending(false);
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
@@ -84,12 +117,22 @@ export function LoginForm() {
       </div>
 
       {error ? <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
+      {notice ? <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{notice}</p> : null}
 
       <button
         disabled={loading}
         className="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading ? "Ingresando..." : "Ingresar"}
+      </button>
+
+      <button
+        type="button"
+        onClick={resendVerification}
+        disabled={resending}
+        className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {resending ? "Reenviando..." : "Reenviar email de verificacion"}
       </button>
 
       <p className="text-center text-sm text-slate-600">

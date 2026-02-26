@@ -42,10 +42,12 @@ export function RegisterForm({ role }: Props) {
     setSuccess(null);
 
     const supabase = createClient();
+    const emailRedirectTo = `${window.location.origin}/login`;
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
+        emailRedirectTo,
         data: {
           role,
           full_name: values.fullName,
