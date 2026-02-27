@@ -13,7 +13,23 @@ export async function requireProfile(expectedRole?: Role) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  let { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+
+  if (!profile) {
+    const metadataRole = user.user_metadata?.role;
+    const inferredRole: Role =
+      metadataRole === "driver" || metadataRole === "admin" ? metadataRole : "customer";
+
+    await supabase.from("profiles").insert({
+      id: user.id,
+      role: inferredRole,
+      full_name: (user.user_metadata?.full_name as string | undefined) ?? null,
+      phone: (user.user_metadata?.phone as string | undefined) ?? null,
+    });
+
+    const { data: createdProfile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    profile = createdProfile;
+  }
 
   if (!profile) {
     redirect("/login");

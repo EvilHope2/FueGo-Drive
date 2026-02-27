@@ -60,7 +60,20 @@ export function LoginForm() {
         .eq("id", data.user.id)
         .single();
 
-      const role = (profile?.role as Role | undefined) ?? "customer";
+      const metadataRole = data.user.user_metadata?.role;
+      const inferredRole: Role =
+        metadataRole === "driver" || metadataRole === "admin" ? metadataRole : "customer";
+
+      if (!profile) {
+        await supabase.from("profiles").insert({
+          id: data.user.id,
+          role: inferredRole,
+          full_name: (data.user.user_metadata?.full_name as string | undefined) ?? null,
+          phone: (data.user.user_metadata?.phone as string | undefined) ?? null,
+        });
+      }
+
+      const role = (profile?.role as Role | undefined) ?? inferredRole;
 
       router.push(ROLE_PATHS[role]);
       router.refresh();
