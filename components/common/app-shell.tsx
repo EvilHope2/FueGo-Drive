@@ -5,10 +5,11 @@ import { LogoutButton } from "@/components/common/logout-button";
 type Props = {
   title: string;
   subtitle: string;
+  roleLabel?: string;
   children: React.ReactNode;
 };
 
-export function AppShell({ title, subtitle, children }: Props) {
+export function AppShell({ title, subtitle, roleLabel, children }: Props) {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -16,7 +17,14 @@ export function AppShell({ title, subtitle, children }: Props) {
           <Link href="/" className="text-lg font-bold tracking-tight text-indigo-700">
             FueGo
           </Link>
-          <LogoutButton />
+          <div className="flex items-center gap-3">
+            {roleLabel ? (
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                {roleLabel}
+              </span>
+            ) : null}
+            <LogoutButton />
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">

@@ -1,46 +1,58 @@
-# FueGo MVP
+# FueGo MVP (Sin Mapa)
 
-App web para pedir autos estilo Uber (sin mapa) con stack Next.js + Supabase.
+FueGo es una web estilo Uber para pedir autos, con panel de cliente y conductor, auth por roles y estado del viaje en tiempo real.
 
 ## Stack
 - Next.js App Router + TypeScript
 - Tailwind CSS
-- Supabase (Auth + Postgres + RLS)
-- Deploy recomendado: Vercel
+- Supabase (Auth + Postgres + RLS + RPC)
+- Vercel
 
-## Flujo MVP
-- Cliente crea viaje en `/app`.
-- Conductor acepta desde `/driver`.
-- Cliente y conductor ven estado del viaje en detalle con polling cada 4s.
-- Estados: `Solicitado`, `Aceptado`, `En camino`, `Llegando`, `Afuera`, `Finalizado`, `Cancelado`.
-- WhatsApp preescrito exacto: `Tu FueGo llego`.
+## Funcionalidad incluida
+- Cliente: crea viaje, ve historial, detalle con stepper y cancelacion (cuando aplica).
+- Conductor: ve viajes disponibles, acepta viaje atomico y avanza estados en orden.
+- Anti doble aceptacion con RPC `accept_ride`.
+- Pricing B.1 por macrozona + recargo por barrio.
+- WhatsApp con mensaje exacto: `Tu FueGo llego`.
 
-## 1) Configurar Supabase
-1. Crea un proyecto en Supabase.
-2. En SQL Editor, ejecuta [`supabase/schema.sql`](./supabase/schema.sql).
-3. En Auth -> Providers deja Email/Password activo.
-4. (Opcional) Si quieres flujo sin confirmacion por mail, desactiva "Confirm email" en Auth settings.
+## Estados
+`Solicitado -> Aceptado -> En camino -> Llegando -> Afuera -> Finalizado`
 
-## 2) Variables de entorno
-Crea `.env.local` con:
+Tambien existe `Cancelado` con reglas de bloqueo.
+
+## Configurar Supabase
+1. Crea proyecto en Supabase.
+2. Ejecuta completo [`supabase/schema.sql`](./supabase/schema.sql) en SQL Editor.
+3. Activa Auth por Email/Password.
+4. Configura URL de Auth:
+   - `Site URL`: `https://tu-dominio.vercel.app`
+   - `Redirect URLs`: `https://tu-dominio.vercel.app/**`
+
+## Variables de entorno
+Crea `.env.local`:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=TU_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=TU_SUPABASE_ANON_KEY
 ```
 
-Tambien puedes copiar desde `.env.example`.
-
-## 3) Correr en local
+## Correr local
 ```bash
 npm install
 npm run dev
 ```
 
-## 4) Deploy en Vercel
-1. Importa el repo en Vercel.
-2. Configura las mismas variables de entorno del `.env.local`.
+## Deploy Vercel
+1. Importa repo en Vercel.
+2. Carga las mismas env vars.
 3. Deploy.
+
+## SQL incluido en schema.sql
+- Tablas: `profiles`, `rides`, `zone_base_prices`, `neighborhood_surcharges`.
+- `rides` extendida con: `from_zone`, `from_neighborhood`, `to_zone`, `to_neighborhood`, `estimated_price`.
+- RPC atomica: `accept_ride(p_ride_id uuid)`.
+- RLS para customer, driver y admin.
+- Seeds iniciales para matriz base por macrozona y recargos por barrio.
 
 ## Rutas
 Publicas:
@@ -54,9 +66,4 @@ Privadas:
 - `/app/viaje/[id]`
 - `/driver`
 - `/driver/viaje/[id]`
-- `/admin` (si tu usuario tiene rol admin)
-
-## Notas
-- Helper WhatsApp: `lib/whatsapp.ts` con `buildWhatsAppLink(phone, message)`.
-- Mensaje obligatorio para WhatsApp: `Tu FueGo llego`.
-- Seguridad de permisos implementada en RLS, no solo frontend.
+- `/admin`

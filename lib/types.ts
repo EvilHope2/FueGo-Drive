@@ -1,4 +1,4 @@
-import type { RideStatus } from "@/lib/constants";
+import type { RideStatus, ZoneName } from "@/lib/constants";
 
 export type Role = "customer" | "driver" | "admin";
 
@@ -17,6 +17,11 @@ export type Ride = {
   driver_id: string | null;
   origin: string;
   destination: string;
+  from_zone: ZoneName | null;
+  from_neighborhood: string | null;
+  to_zone: ZoneName | null;
+  to_neighborhood: string | null;
+  estimated_price: number | null;
   note: string | null;
   customer_name: string;
   customer_phone: string;
@@ -30,4 +35,18 @@ export type Ride = {
   finished_at: string | null;
   customer_profile?: Pick<Profile, "full_name" | "phone"> | null;
   driver_profile?: Pick<Profile, "full_name" | "phone"> | null;
+};
+
+export type ZoneBasePrice = {
+  id: string;
+  from_zone: ZoneName;
+  to_zone: ZoneName;
+  base_price: number;
+};
+
+export type NeighborhoodSurcharge = {
+  id: string;
+  zone: ZoneName;
+  neighborhood: string;
+  surcharge: number;
 };

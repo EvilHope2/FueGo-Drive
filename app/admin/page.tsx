@@ -9,8 +9,9 @@ export default async function AdminPage() {
   const { data: rides } = await supabase.from("rides").select("*").order("created_at", { ascending: false });
 
   return (
-    <AppShell title="Panel admin" subtitle="Vision global de viajes, clientes y conductores.">
+    <AppShell title="Panel admin" subtitle="Vision global de viajes, clientes y conductores." roleLabel="Admin">
       <AdminDashboard initialRides={(rides ?? []) as Ride[]} />
     </AppShell>
   );
 }
+

@@ -19,6 +19,13 @@ export const STATUS_ORDER: RideStatus[] = [
   "Finalizado",
 ];
 
+export const NEXT_DRIVER_STATUS: Partial<Record<RideStatus, RideStatus>> = {
+  Aceptado: "En camino",
+  "En camino": "Llegando",
+  Llegando: "Afuera",
+  Afuera: "Finalizado",
+};
+
 export const ROLE_PATHS = {
   customer: "/app",
   driver: "/driver",
@@ -26,3 +33,28 @@ export const ROLE_PATHS = {
 } as const;
 
 export const WHATSAPP_MESSAGE = "Tu FueGo llego";
+
+export const ZONE_NEIGHBORHOODS = {
+  "Centro y aledanos": ["Centro", "Casco Viejo", "AGP", "Peron", "Intevu"],
+  Chacras: ["Chacra II", "Chacra IV", "Chacra XI", "Chacra XIII (Malvinas Argentinas)"],
+  "Margen Sur": ["Margen Sur", "Chacras de la Margen Sur"],
+  "Norte y otras areas": [
+    "Aeropuerto",
+    "Parque Industrial",
+    "Buena Vista",
+    "Mutual",
+    "Profesional",
+    "Ex Campamento de YPF",
+    "CGT",
+    "Las Barrancas",
+    "Altos de la Estancia",
+    "Los Cisnes",
+    "Vapor Amadeo",
+    "San Martin",
+    "San Martin Norte",
+  ],
+} as const;
+
+export type ZoneName = keyof typeof ZONE_NEIGHBORHOODS;
+
+export const ALL_NEIGHBORHOODS = Object.values(ZONE_NEIGHBORHOODS).flat();

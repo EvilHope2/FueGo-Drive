@@ -23,8 +23,9 @@ export default async function CustomerRidePage({ params }: Props) {
   if (!ride) notFound();
 
   return (
-    <AppShell title="Detalle del viaje" subtitle="Seguimiento en tiempo real del estado actual.">
+    <AppShell title="Detalle del viaje" subtitle="Seguimiento en tiempo real del estado actual." roleLabel="Cliente">
       <CustomerRideDetail rideId={id} initialRide={ride as Ride} />
     </AppShell>
   );
 }
+

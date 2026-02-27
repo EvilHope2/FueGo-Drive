@@ -23,8 +23,9 @@ export default async function DriverRidePage({ params }: Props) {
   if (!ride) notFound();
 
   return (
-    <AppShell title="Gestion del viaje" subtitle="Actualiza el estado y comunica llegada al cliente.">
+    <AppShell title="Gestion del viaje" subtitle="Actualiza el estado y comunica llegada al cliente." roleLabel="Conductor">
       <DriverRideDetail rideId={id} initialRide={ride as Ride} />
     </AppShell>
   );
 }
+

@@ -8,7 +8,7 @@ import { StatusStepper } from "@/components/common/status-stepper";
 import { WhatsAppFixedButton } from "@/components/common/whatsapp-fixed-button";
 import { WHATSAPP_MESSAGE } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
-import { formatDateTime } from "@/lib/utils";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import type { Ride } from "@/lib/types";
 
@@ -44,6 +44,8 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
   const driverName = ride.driver_profile?.full_name ?? "Conductor asignado";
   const whatsappHref = useMemo(() => buildWhatsAppLink(driverPhone, WHATSAPP_MESSAGE), [driverPhone]);
 
+  const canCancel = ride.status === "Solicitado" || ride.status === "Aceptado";
+
   const cancelRide = async () => {
     setLoading(true);
     const supabase = createClient();
@@ -61,7 +63,7 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
   return (
     <div className="space-y-5 pb-24">
       <Link href="/app" className="inline-flex text-sm font-medium text-indigo-700 hover:text-indigo-800">
-        ? Volver
+        Volver al panel
       </Link>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -70,9 +72,19 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
           <StatusBadge status={ride.status} />
         </div>
         <p className="mt-1 text-sm text-slate-600">
-          {ride.origin} ? {ride.destination}
+          {ride.origin} {"->"} {ride.destination}
         </p>
         <p className="mt-1 text-xs text-slate-500">Solicitado: {formatDateTime(ride.created_at)}</p>
+
+        <div className="mt-4 grid gap-2 rounded-xl bg-slate-50 p-4 text-sm text-slate-700 sm:grid-cols-2">
+          <p>
+            Barrios: {ride.from_neighborhood ?? "-"} {"->"} {ride.to_neighborhood ?? "-"}
+          </p>
+          <p>
+            Zonas: {ride.from_zone ?? "-"} {"->"} {ride.to_zone ?? "-"}
+          </p>
+          <p className="font-semibold text-slate-900">Estimado: {formatCurrency(ride.estimated_price ?? null)}</p>
+        </div>
 
         <div className="mt-5">
           <StatusStepper status={ride.status} />
@@ -91,7 +103,7 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
         )}
       </section>
 
-      {(ride.status === "Solicitado" || ride.status === "Aceptado") && (
+      {canCancel ? (
         <button
           type="button"
           disabled={loading}
@@ -100,9 +112,9 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
         >
           {loading ? "Cancelando..." : "Cancelar viaje"}
         </button>
-      )}
+      ) : null}
 
-      {ride.driver_id && driverPhone ? <WhatsAppFixedButton href={whatsappHref} label="Contactar por WhatsApp" /> : null}
+      {ride.driver_id && driverPhone ? <WhatsAppFixedButton href={whatsappHref} label="Contactar conductor" /> : null}
     </div>
   );
 }

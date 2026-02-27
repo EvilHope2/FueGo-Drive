@@ -21,12 +21,12 @@ export default async function DriverPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <AppShell title="Panel conductor" subtitle="Acepta viajes y actualiza estados del servicio.">
+    <AppShell title="Panel conductor" subtitle="Acepta viajes y actualiza estados del servicio." roleLabel="Conductor">
       <DriverDashboard
-        driverId={profile.id}
         initialAvailable={(availableRides ?? []) as Ride[]}
         initialActive={(activeRides ?? []) as Ride[]}
       />
     </AppShell>
   );
 }
+
