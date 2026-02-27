@@ -15,6 +15,10 @@ const schema = z.object({
   phone: z.string().min(8, "Ingresa telefono WhatsApp"),
   email: z.string().email("Ingresa un email valido"),
   password: z.string().min(6, "Minimo 6 caracteres"),
+  confirmPassword: z.string().min(6, "Confirma tu contrasena"),
+}).refine((values) => values.password === values.confirmPassword, {
+  path: ["confirmPassword"],
+  message: "Las contrasenas no coinciden",
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -41,7 +45,8 @@ export function RegisterForm({ role }: Props) {
 
     try {
       const supabase = createClient();
-      const emailRedirectTo = `${window.location.origin}/login`;
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+      const emailRedirectTo = `${siteUrl}/login`;
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -118,6 +123,17 @@ export function RegisterForm({ role }: Props) {
           className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
         />
         {errors.password ? <p className="mt-1 text-xs text-rose-600">{errors.password.message}</p> : null}
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium text-slate-700">Confirmar contrasena</label>
+        <input
+          type="password"
+          {...register("confirmPassword")}
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+        />
+        {errors.confirmPassword ? (
+          <p className="mt-1 text-xs text-rose-600">{errors.confirmPassword.message}</p>
+        ) : null}
       </div>
 
       {error ? <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}

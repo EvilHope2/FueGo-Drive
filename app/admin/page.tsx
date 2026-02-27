@@ -6,7 +6,10 @@ import type { Ride } from "@/lib/types";
 export default async function AdminPage() {
   const { supabase } = await requireProfile("admin");
 
-  const { data: rides } = await supabase.from("rides").select("*").order("created_at", { ascending: false });
+  const { data: rides } = await supabase
+    .from("rides")
+    .select("*,driver_profile:profiles!rides_driver_id_fkey(full_name,phone)")
+    .order("created_at", { ascending: false });
 
   return (
     <AppShell title="Panel admin" subtitle="Vision global de viajes, clientes y conductores." roleLabel="Admin">

@@ -25,3 +25,5 @@ export function formatCurrency(value: number | null | undefined) {
     maximumFractionDigits: 0,
   }).format(value);
 }
+
+export const formatCurrencyARS = formatCurrency;

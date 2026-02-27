@@ -1,4 +1,4 @@
-import type { RideStatus, ZoneName } from "@/lib/constants";
+﻿import type { RideStatus, ZoneName } from "@/lib/constants";
 
 export type Role = "customer" | "driver" | "admin";
 
@@ -7,6 +7,7 @@ export type Profile = {
   role: Role;
   full_name: string | null;
   phone: string | null;
+  email?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -17,11 +18,18 @@ export type Ride = {
   driver_id: string | null;
   origin: string;
   destination: string;
+  origin_address: string | null;
+  destination_address: string | null;
   from_zone: ZoneName | null;
   from_neighborhood: string | null;
   to_zone: ZoneName | null;
   to_neighborhood: string | null;
   estimated_price: number | null;
+  commission_percent: number | null;
+  commission_amount: number | null;
+  driver_earnings: number | null;
+  is_settled: boolean;
+  settled_at: string | null;
   note: string | null;
   customer_name: string;
   customer_phone: string;
@@ -33,6 +41,7 @@ export type Ride = {
   arriving_at: string | null;
   outside_at: string | null;
   finished_at: string | null;
+  canceled_at: string | null;
   customer_profile?: Pick<Profile, "full_name" | "phone"> | null;
   driver_profile?: Pick<Profile, "full_name" | "phone"> | null;
 };
@@ -50,3 +59,11 @@ export type NeighborhoodSurcharge = {
   neighborhood: string;
   surcharge: number;
 };
+
+export type AppSettings = {
+  id: string;
+  default_commission_percent: number;
+  created_at: string;
+  updated_at: string;
+};
+

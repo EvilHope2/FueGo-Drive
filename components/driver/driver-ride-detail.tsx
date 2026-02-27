@@ -1,14 +1,16 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
+import { RidePriceSummary } from "@/components/common/ride-price-summary";
+import { RideStepper } from "@/components/common/ride-stepper";
 import { StatusBadge } from "@/components/common/status-badge";
-import { StatusStepper } from "@/components/common/status-stepper";
 import { WhatsAppFixedButton } from "@/components/common/whatsapp-fixed-button";
-import { NEXT_DRIVER_STATUS, WHATSAPP_MESSAGE, type RideStatus } from "@/lib/constants";
+import { WHATSAPP_MESSAGE, type RideStatus } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import type { Ride } from "@/lib/types";
 
@@ -17,10 +19,17 @@ type Props = {
   initialRide: Ride;
 };
 
+const driverActions: { label: string; status: RideStatus; tone?: "danger" }[] = [
+  { label: "En camino", status: "En camino" },
+  { label: "Llegando", status: "Llegando" },
+  { label: "Afuera", status: "Afuera" },
+  { label: "Finalizar", status: "Finalizado" },
+  { label: "Cancelar", status: "Cancelado", tone: "danger" },
+];
+
 export function DriverRideDetail({ rideId, initialRide }: Props) {
   const [ride, setRide] = useState(initialRide);
   const [loadingStatus, setLoadingStatus] = useState<RideStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -32,9 +41,7 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
         .eq("id", rideId)
         .single();
 
-      if (data) {
-        setRide(data as Ride);
-      }
+      if (data) setRide(data as Ride);
     };
 
     const interval = setInterval(fetchRide, 4000);
@@ -43,23 +50,22 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
 
   const updateStatus = async (status: RideStatus) => {
     setLoadingStatus(status);
-    setError(null);
     const supabase = createClient();
 
-    const { data, error: updateError } = await supabase
+    const { data, error } = await supabase
       .from("rides")
       .update({ status })
       .eq("id", ride.id)
       .select("*,customer_profile:profiles!rides_customer_id_fkey(full_name,phone)")
       .single();
 
-    if (updateError) {
-      if (updateError.message.includes("INVALID_STATUS_FLOW")) {
-        setError("El estado debe avanzar en orden.");
-      } else if (updateError.message.includes("STATUS_LOCKED")) {
-        setError("El viaje ya no permite cambios de estado.");
+    if (error) {
+      if (error.message.includes("INVALID_STATUS_FLOW")) {
+        toast.error("Debes avanzar los estados en orden.");
+      } else if (error.message.includes("STATUS_LOCKED")) {
+        toast.error("Este viaje ya no permite cambios.");
       } else {
-        setError("No se pudo actualizar el estado.");
+        toast.error("No se pudo actualizar el estado.");
       }
       setLoadingStatus(null);
       return;
@@ -67,17 +73,15 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
 
     if (data) {
       setRide(data as Ride);
+      toast.success("Estado actualizado.");
     }
 
     setLoadingStatus(null);
   };
 
-  const customerPhone = ride.customer_phone;
-  const customerName = ride.customer_name;
-  const whatsappHref = useMemo(() => buildWhatsAppLink(customerPhone, WHATSAPP_MESSAGE), [customerPhone]);
-
   const isLocked = ride.status === "Finalizado" || ride.status === "Cancelado";
-  const nextStatus = NEXT_DRIVER_STATUS[ride.status] ?? null;
+  const customerPhone = ride.customer_phone;
+  const whatsappHref = useMemo(() => buildWhatsAppLink(customerPhone, WHATSAPP_MESSAGE), [customerPhone]);
 
   return (
     <div className="space-y-5 pb-24">
@@ -87,58 +91,61 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-slate-900">Viaje asignado</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Detalle del viaje</h2>
           <StatusBadge status={ride.status} />
         </div>
+
         <p className="mt-1 text-sm text-slate-700">
-          {ride.origin} {"->"} {ride.destination}
+          {ride.origin_address ?? ride.origin} {"->"} {ride.destination_address ?? ride.destination}
         </p>
         <p className="mt-1 text-xs text-slate-500">Creado: {formatDateTime(ride.created_at)}</p>
 
         <div className="mt-4 grid gap-2 rounded-xl bg-slate-50 p-4 text-sm text-slate-700 sm:grid-cols-2">
-          <p>Cliente: {customerName}</p>
-          <p>WhatsApp cliente: {customerPhone}</p>
+          <p>Cliente: {ride.customer_name}</p>
+          <p>WhatsApp: {ride.customer_phone}</p>
           <p>
             Barrios: {ride.from_neighborhood ?? "-"} {"->"} {ride.to_neighborhood ?? "-"}
           </p>
           <p>
             Zonas: {ride.from_zone ?? "-"} {"->"} {ride.to_zone ?? "-"}
           </p>
-          <p className="font-semibold text-slate-900">Estimado: {formatCurrency(ride.estimated_price ?? null)}</p>
           {ride.note ? <p>Nota: {ride.note}</p> : null}
         </div>
 
+        <div className="mt-3">
+          <RidePriceSummary
+            estimatedPrice={ride.estimated_price}
+            commissionAmount={ride.commission_amount}
+            driverEarnings={ride.driver_earnings}
+            commissionPercent={ride.commission_percent}
+            showBreakdown
+          />
+        </div>
+
         <div className="mt-5">
-          <StatusStepper status={ride.status} />
+          <RideStepper status={ride.status} />
         </div>
       </section>
 
       {!isLocked ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="text-base font-semibold text-slate-900">Actualizar estado</h3>
-          <p className="mt-1 text-sm text-slate-600">El flujo avanza en orden: Aceptado, En camino, Llegando, Afuera y Finalizado.</p>
-
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {nextStatus ? (
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {driverActions.map((action) => (
               <button
-                onClick={() => updateStatus(nextStatus)}
-                disabled={loadingStatus === nextStatus}
-                className="rounded-xl bg-indigo-600 px-3 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+                key={action.status}
+                onClick={() => updateStatus(action.status)}
+                disabled={loadingStatus === action.status || ride.status === action.status}
+                className={`rounded-xl px-3 py-3 text-sm font-semibold transition ${
+                  action.tone === "danger"
+                    ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                    : "bg-indigo-600 text-white hover:bg-indigo-700"
+                } disabled:cursor-not-allowed disabled:opacity-60`}
               >
-                {loadingStatus === nextStatus ? "Actualizando..." : nextStatus}
+                {loadingStatus === action.status ? "Actualizando..." : action.label}
               </button>
-            ) : null}
-
-            <button
-              onClick={() => updateStatus("Cancelado")}
-              disabled={loadingStatus === "Cancelado"}
-              className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
-            >
-              {loadingStatus === "Cancelado" ? "Actualizando..." : "Cancelar"}
-            </button>
+            ))}
           </div>
-
-          {error ? <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
         </section>
       ) : null}
 
@@ -146,3 +153,4 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
     </div>
   );
 }
+

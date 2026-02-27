@@ -66,8 +66,9 @@ export function LoginForm() {
         await supabase.from("profiles").insert({
           id: data.user.id,
           role: inferredRole,
-          full_name: (data.user.user_metadata?.full_name as string | undefined) ?? null,
-          phone: (data.user.user_metadata?.phone as string | undefined) ?? null,
+          full_name: (data.user.user_metadata?.full_name as string | undefined) ?? data.user.email?.split("@")[0] ?? "Usuario",
+          email: data.user.email ?? null,
+          phone: (data.user.user_metadata?.phone as string | undefined) ?? "",
         });
       }
 
@@ -94,7 +95,8 @@ export function LoginForm() {
 
     try {
       const supabase = createClient();
-      const emailRedirectTo = `${window.location.origin}/login`;
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+      const emailRedirectTo = `${siteUrl}/login`;
       const { error: resendError } = await supabase.auth.resend({
         type: "signup",
         email,
@@ -158,6 +160,10 @@ export function LoginForm() {
         No tenes cuenta?{" "}
         <Link href="/registro-cliente" className="font-medium text-indigo-700 hover:text-indigo-800">
           Registro cliente
+        </Link>
+        {" · "}
+        <Link href="/registro-conductor" className="font-medium text-indigo-700 hover:text-indigo-800">
+          Soy conductor
         </Link>
       </p>
     </form>

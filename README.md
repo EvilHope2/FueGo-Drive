@@ -1,40 +1,23 @@
-# FueGo MVP (Sin Mapa)
+﻿# FueGo (MVP sin mapa)
 
-FueGo es una web estilo Uber para pedir autos, con panel de cliente y conductor, auth por roles y estado del viaje en tiempo real.
+FueGo es una web tipo Uber sin mapa, con paneles para cliente, conductor y admin.
 
 ## Stack
 - Next.js App Router + TypeScript
 - Tailwind CSS
 - Supabase (Auth + Postgres + RLS + RPC)
-- Vercel
-
-## Funcionalidad incluida
-- Cliente: crea viaje, ve historial, detalle con stepper y cancelacion (cuando aplica).
-- Conductor: ve viajes disponibles, acepta viaje atomico y avanza estados en orden.
-- Anti doble aceptacion con RPC `accept_ride`.
-- Pricing B.1 por macrozona + recargo por barrio.
-- WhatsApp con mensaje exacto: `Tu FueGo llego`.
-
-## Estados
-`Solicitado -> Aceptado -> En camino -> Llegando -> Afuera -> Finalizado`
-
-Tambien existe `Cancelado` con reglas de bloqueo.
-
-## Configurar Supabase
-1. Crea proyecto en Supabase.
-2. Ejecuta completo [`supabase/schema.sql`](./supabase/schema.sql) en SQL Editor.
-3. Activa Auth por Email/Password.
-4. Configura URL de Auth:
-   - `Site URL`: `https://tu-dominio.vercel.app`
-   - `Redirect URLs`: `https://tu-dominio.vercel.app/**`
+- Deploy en Vercel
 
 ## Variables de entorno
-Crea `.env.local`:
+Crear `.env.local`:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=TU_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY=TU_SUPABASE_ANON_KEY
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY` no se usa en cliente.
 
 ## Correr local
 ```bash
@@ -42,17 +25,59 @@ npm install
 npm run dev
 ```
 
-## Deploy Vercel
-1. Importa repo en Vercel.
-2. Carga las mismas env vars.
+## Deploy en Vercel
+1. Importar repo.
+2. Cargar mismas env vars en Vercel.
 3. Deploy.
 
-## SQL incluido en schema.sql
-- Tablas: `profiles`, `rides`, `zone_base_prices`, `neighborhood_surcharges`.
-- `rides` extendida con: `from_zone`, `from_neighborhood`, `to_zone`, `to_neighborhood`, `estimated_price`.
-- RPC atomica: `accept_ride(p_ride_id uuid)`.
-- RLS para customer, driver y admin.
-- Seeds iniciales para matriz base por macrozona y recargos por barrio.
+## Configurar Supabase
+1. Abrir SQL Editor.
+2. Ejecutar completo [`supabase/schema.sql`](./supabase/schema.sql).
+3. Verificar tablas creadas: `profiles`, `rides`, `zone_base_prices`, `neighborhood_surcharges`, `app_settings`.
+
+## Qué incluye
+- Auth por rol (`customer`, `driver`, `admin`).
+- Flujo de viaje: Solicitado -> Aceptado -> En camino -> Llegando -> Afuera -> Finalizado/Cancelado.
+- Aceptación atómica de viajes con RPC `accept_ride` (anti doble aceptación).
+- Cálculo de precio por macrozona + recargo por barrio.
+- Monetización:
+  - `commission_percent`
+  - `commission_amount`
+  - `driver_earnings`
+- Liquidación semanal simple en `/admin/liquidaciones`.
+- WhatsApp con mensaje exacto: `Tu FueGo llego`.
+
+## Configurar comisión por defecto
+Tabla `app_settings`:
+
+```sql
+update public.app_settings
+set default_commission_percent = 15;
+```
+
+## Cambiar precios por zona
+Tabla `zone_base_prices`:
+
+```sql
+update public.zone_base_prices
+set base_price = 3400
+where from_zone = 'Centro y aledaños' and to_zone = 'Norte y otras áreas';
+```
+
+## Cambiar recargos por barrio
+Tabla `neighborhood_surcharges`:
+
+```sql
+update public.neighborhood_surcharges
+set surcharge = 250
+where neighborhood = 'AGP';
+```
+
+## Liquidación semanal
+Ruta: `/admin/liquidaciones`
+- Filtros por conductor y rango de fechas.
+- Opción semana actual.
+- Acción para marcar viajes pendientes como liquidados (`is_settled = true`, `settled_at = now()`).
 
 ## Rutas
 Publicas:
@@ -67,3 +92,4 @@ Privadas:
 - `/driver`
 - `/driver/viaje/[id]`
 - `/admin`
+- `/admin/liquidaciones`

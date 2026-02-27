@@ -1,14 +1,16 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
+import { RidePriceSummary } from "@/components/common/ride-price-summary";
+import { RideStepper } from "@/components/common/ride-stepper";
 import { StatusBadge } from "@/components/common/status-badge";
-import { StatusStepper } from "@/components/common/status-stepper";
 import { WhatsAppFixedButton } from "@/components/common/whatsapp-fixed-button";
 import { WHATSAPP_MESSAGE } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import type { Ride } from "@/lib/types";
 
@@ -31,32 +33,38 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
         .eq("id", rideId)
         .single();
 
-      if (data) {
-        setRide(data as Ride);
-      }
+      if (data) setRide(data as Ride);
     };
 
     const interval = setInterval(fetchRide, 4000);
     return () => clearInterval(interval);
   }, [rideId]);
 
-  const driverPhone = ride.driver_profile?.phone ?? "";
-  const driverName = ride.driver_profile?.full_name ?? "Conductor asignado";
-  const whatsappHref = useMemo(() => buildWhatsAppLink(driverPhone, WHATSAPP_MESSAGE), [driverPhone]);
-
   const canCancel = ride.status === "Solicitado" || ride.status === "Aceptado";
+  const driverPhone = ride.driver_profile?.phone ?? "";
+  const whatsappHref = useMemo(() => buildWhatsAppLink(driverPhone, WHATSAPP_MESSAGE), [driverPhone]);
 
   const cancelRide = async () => {
     setLoading(true);
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("rides")
       .update({ status: "Cancelado" })
       .eq("id", ride.id)
       .select("*,driver_profile:profiles!rides_driver_id_fkey(full_name,phone)")
       .single();
 
-    if (data) setRide(data as Ride);
+    if (error) {
+      toast.error("No se pudo cancelar el viaje.");
+      setLoading(false);
+      return;
+    }
+
+    if (data) {
+      setRide(data as Ride);
+      toast.success("Viaje cancelado.");
+    }
+
     setLoading(false);
   };
 
@@ -72,7 +80,7 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
           <StatusBadge status={ride.status} />
         </div>
         <p className="mt-1 text-sm text-slate-600">
-          {ride.origin} {"->"} {ride.destination}
+          {ride.origin_address ?? ride.origin} {"->"} {ride.destination_address ?? ride.destination}
         </p>
         <p className="mt-1 text-xs text-slate-500">Solicitado: {formatDateTime(ride.created_at)}</p>
 
@@ -83,11 +91,14 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
           <p>
             Zonas: {ride.from_zone ?? "-"} {"->"} {ride.to_zone ?? "-"}
           </p>
-          <p className="font-semibold text-slate-900">Estimado: {formatCurrency(ride.estimated_price ?? null)}</p>
+        </div>
+
+        <div className="mt-3">
+          <RidePriceSummary estimatedPrice={ride.estimated_price} />
         </div>
 
         <div className="mt-5">
-          <StatusStepper status={ride.status} />
+          <RideStepper status={ride.status} />
         </div>
       </section>
 
@@ -95,11 +106,11 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
         <h3 className="text-base font-semibold text-slate-900">Conductor</h3>
         {ride.driver_id ? (
           <div className="mt-3 space-y-1 text-sm text-slate-700">
-            <p>{driverName}</p>
+            <p>{ride.driver_profile?.full_name ?? "Conductor asignado"}</p>
             <p>WhatsApp: {driverPhone || "Sin telefono"}</p>
           </div>
         ) : (
-          <p className="mt-3 text-sm text-slate-600">Todavia no hay conductor asignado.</p>
+          <p className="mt-3 text-sm text-slate-600">Todavía no hay conductor asignado.</p>
         )}
       </section>
 
@@ -118,3 +129,4 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
     </div>
   );
 }
+

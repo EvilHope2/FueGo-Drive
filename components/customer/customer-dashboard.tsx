@@ -1,16 +1,19 @@
-"use client";
+﻿"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
+import { EmptyState } from "@/components/common/empty-state";
+import { RidePriceSummary } from "@/components/common/ride-price-summary";
 import { StatusBadge } from "@/components/common/status-badge";
 import { ALL_NEIGHBORHOODS, ZONE_NEIGHBORHOODS } from "@/lib/constants";
-import { calculateEstimatedPrice, toPriceNumber } from "@/lib/pricing";
+import { calculateEstimatedRidePrice, calculateRideEconomics, toPriceNumber } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatCurrencyARS, formatDateTime } from "@/lib/utils";
 import type { NeighborhoodSurcharge, Profile, Ride, ZoneBasePrice } from "@/lib/types";
 
 const schema = z.object({
@@ -30,13 +33,18 @@ type Props = {
   initialRides: Ride[];
   basePrices: ZoneBasePrice[];
   surcharges: NeighborhoodSurcharge[];
+  defaultCommissionPercent: number;
 };
 
-export function CustomerDashboard({ profile, initialRides, basePrices, surcharges }: Props) {
+export function CustomerDashboard({
+  profile,
+  initialRides,
+  basePrices,
+  surcharges,
+  defaultCommissionPercent,
+}: Props) {
   const [rides, setRides] = useState(initialRides);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const {
     register,
@@ -58,7 +66,7 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
   const estimate = useMemo(() => {
     if (!fromNeighborhood || !toNeighborhood) return null;
 
-    return calculateEstimatedPrice({
+    return calculateEstimatedRidePrice({
       fromNeighborhood,
       toNeighborhood,
       basePrices,
@@ -73,10 +81,8 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
 
   const createRide = async (values: FormValues) => {
     setLoading(true);
-    setError(null);
-    setNotice(null);
 
-    const currentEstimate = calculateEstimatedPrice({
+    const currentEstimate = calculateEstimatedRidePrice({
       fromNeighborhood: values.fromNeighborhood,
       toNeighborhood: values.toNeighborhood,
       basePrices,
@@ -84,11 +90,12 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
     });
 
     if (!currentEstimate) {
-      setError("No se pudo calcular el estimado. Revisa barrios seleccionados.");
+      toast.error("No se pudo calcular el estimado. Revisa barrios seleccionados.");
       setLoading(false);
       return;
     }
 
+    const economics = calculateRideEconomics(currentEstimate.estimatedPrice, defaultCommissionPercent);
     const supabase = createClient();
 
     await supabase
@@ -102,11 +109,16 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
         customer_id: profile.id,
         origin: values.origin,
         destination: values.destination,
+        origin_address: values.origin,
+        destination_address: values.destination,
         from_zone: currentEstimate.fromZone,
         from_neighborhood: values.fromNeighborhood,
         to_zone: currentEstimate.toZone,
         to_neighborhood: values.toNeighborhood,
         estimated_price: currentEstimate.estimatedPrice,
+        commission_percent: economics.commissionPercent,
+        commission_amount: economics.commissionAmount,
+        driver_earnings: economics.driverEarnings,
         customer_name: values.customerName,
         customer_phone: values.customerPhone,
         note: values.note?.trim() || null,
@@ -116,13 +128,13 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
       .single();
 
     if (insertError || !data) {
-      setError(insertError?.message ?? "No se pudo crear el viaje");
+      toast.error(insertError?.message ?? "No se pudo crear el viaje");
       setLoading(false);
       return;
     }
 
     setRides((prev) => [data as Ride, ...prev]);
-    setNotice("Viaje solicitado con exito.");
+    toast.success("Viaje solicitado con éxito.");
     reset({
       origin: "",
       destination: "",
@@ -141,9 +153,9 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
         <section className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-indigo-900">Viaje activo</p>
+              <p className="text-sm font-semibold text-indigo-900">Mi viaje activo</p>
               <p className="mt-1 text-sm text-indigo-800">
-                {activeRide.origin} {"->"} {activeRide.destination}
+                {activeRide.origin_address ?? activeRide.origin} {"->"} {activeRide.destination_address ?? activeRide.destination}
               </p>
             </div>
             <StatusBadge status={activeRide.status} />
@@ -157,7 +169,7 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
       <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">Pedir FueGo</h2>
-          <p className="mt-1 text-sm text-slate-600">Indica direcciones, barrios y contacto para solicitar el viaje.</p>
+          <p className="mt-1 text-sm text-slate-600">Completá zonas y direcciones para crear tu viaje.</p>
 
           <form className="mt-4 space-y-4" onSubmit={handleSubmit(createRide)}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -196,19 +208,19 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Origen (direccion)</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Dirección origen</label>
               <input {...register("origin")} className="field" />
               {errors.origin ? <p className="error">{errors.origin.message}</p> : null}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Destino (direccion)</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Dirección destino</label>
               <input {...register("destination")} className="field" />
               {errors.destination ? <p className="error">{errors.destination.message}</p> : null}
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Nombre</label>
+                <label className="mb-1 block text-sm font-medium text-slate-700">Nombre y apellido</label>
                 <input {...register("customerName")} className="field" />
                 {errors.customerName ? <p className="error">{errors.customerName.message}</p> : null}
               </div>
@@ -224,17 +236,10 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
               <textarea {...register("note")} rows={3} className="field" />
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-              <p>
-                Zona: {estimate ? `${estimate.fromZone} -> ${estimate.toZone}` : "Selecciona barrios"}
-              </p>
-              <p className="mt-1 font-semibold text-slate-900">
-                Estimado: {estimate ? formatCurrency(estimate.estimatedPrice) : "-"}
-              </p>
-            </div>
-
-            {error ? <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
-            {notice ? <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{notice}</p> : null}
+            <RidePriceSummary estimatedPrice={estimate?.estimatedPrice ?? null} />
+            <p className="text-sm text-slate-600">
+              Zona: {estimate ? `${estimate.fromZone} -> ${estimate.toZone}` : "Seleccioná barrios"}
+            </p>
 
             <button
               disabled={loading}
@@ -246,12 +251,10 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Mis viajes</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Historial</h2>
           <div className="mt-4 space-y-3">
             {rides.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                No tenes viajes todavia
-              </p>
+              <EmptyState title="No tenés viajes todavía" description="Cuando pidas tu primer viaje va a aparecer acá." />
             ) : (
               rides.map((ride) => (
                 <article key={ride.id} className="rounded-xl border border-slate-200 p-4">
@@ -262,10 +265,7 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
                     <StatusBadge status={ride.status} />
                   </div>
                   <p className="mt-1 text-xs text-slate-500">{formatDateTime(ride.created_at)}</p>
-                  <p className="mt-1 text-sm text-slate-700">Estimado: {formatCurrency(toPriceNumber(ride.estimated_price))}</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    {ride.origin} {"->"} {ride.destination}
-                  </p>
+                  <p className="mt-1 text-sm text-slate-700">Estimado: {formatCurrencyARS(toPriceNumber(ride.estimated_price))}</p>
                   <Link
                     href={`/app/viaje/${ride.id}`}
                     className="mt-3 inline-flex text-sm font-medium text-indigo-700 transition hover:text-indigo-800"
@@ -287,3 +287,4 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
     </div>
   );
 }
+

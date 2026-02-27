@@ -1,4 +1,4 @@
-export const RIDE_STATUSES = [
+﻿export const RIDE_STATUSES = [
   "Solicitado",
   "Aceptado",
   "En camino",
@@ -10,14 +10,7 @@ export const RIDE_STATUSES = [
 
 export type RideStatus = (typeof RIDE_STATUSES)[number];
 
-export const STATUS_ORDER: RideStatus[] = [
-  "Solicitado",
-  "Aceptado",
-  "En camino",
-  "Llegando",
-  "Afuera",
-  "Finalizado",
-];
+export const STATUS_ORDER: RideStatus[] = ["Solicitado", "Aceptado", "En camino", "Llegando", "Afuera", "Finalizado"];
 
 export const NEXT_DRIVER_STATUS: Partial<Record<RideStatus, RideStatus>> = {
   Aceptado: "En camino",
@@ -35,10 +28,10 @@ export const ROLE_PATHS = {
 export const WHATSAPP_MESSAGE = "Tu FueGo llego";
 
 export const ZONE_NEIGHBORHOODS = {
-  "Centro y aledanos": ["Centro", "Casco Viejo", "AGP", "Peron", "Intevu"],
+  "Centro y aledaños": ["Centro", "Casco Viejo", "AGP", "Perón", "Intevu"],
   Chacras: ["Chacra II", "Chacra IV", "Chacra XI", "Chacra XIII (Malvinas Argentinas)"],
   "Margen Sur": ["Margen Sur", "Chacras de la Margen Sur"],
-  "Norte y otras areas": [
+  "Norte y otras áreas": [
     "Aeropuerto",
     "Parque Industrial",
     "Buena Vista",
@@ -50,11 +43,12 @@ export const ZONE_NEIGHBORHOODS = {
     "Altos de la Estancia",
     "Los Cisnes",
     "Vapor Amadeo",
-    "San Martin",
-    "San Martin Norte",
+    "San Martín",
+    "San Martín Norte",
   ],
 } as const;
 
 export type ZoneName = keyof typeof ZONE_NEIGHBORHOODS;
 
 export const ALL_NEIGHBORHOODS = Object.values(ZONE_NEIGHBORHOODS).flat();
+

@@ -23,8 +23,9 @@ export async function requireProfile(expectedRole?: Role) {
     await supabase.from("profiles").insert({
       id: user.id,
       role: inferredRole,
-      full_name: (user.user_metadata?.full_name as string | undefined) ?? null,
-      phone: (user.user_metadata?.phone as string | undefined) ?? null,
+      full_name: (user.user_metadata?.full_name as string | undefined) ?? user.email?.split("@")[0] ?? "Usuario",
+      email: user.email ?? null,
+      phone: (user.user_metadata?.phone as string | undefined) ?? "",
     });
 
     const { data: createdProfile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
