@@ -62,12 +62,20 @@ export function AdminDashboard({ initialRides }: Props) {
       </div>
 
       <div className="flex justify-end">
-        <Link
-          href="/admin/liquidaciones"
-          className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
-        >
-          Ir a liquidaciones
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/liquidaciones"
+            className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+          >
+            Ir a liquidaciones
+          </Link>
+          <Link
+            href="/admin/wallets"
+            className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+          >
+            Ir a wallets
+          </Link>
+        </div>
       </div>
 
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -107,6 +115,7 @@ export function AdminDashboard({ initialRides }: Props) {
                 <p>Estimado: {formatCurrencyARS(ride.estimated_price ?? null)}</p>
                 <p>Comisión: {formatCurrencyARS(ride.commission_amount ?? null)}</p>
                 <p>Ganancia conductor: {formatCurrencyARS(ride.driver_earnings ?? null)}</p>
+                <p>Método cobro: {ride.payment_method ?? "unknown"}</p>
               </div>
               {ride.status !== "Finalizado" && ride.status !== "Cancelado" ? (
                 <button

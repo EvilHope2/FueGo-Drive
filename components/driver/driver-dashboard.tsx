@@ -8,20 +8,39 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/common/empty-state";
 import { RidePriceSummary } from "@/components/common/ride-price-summary";
 import { StatusBadge } from "@/components/common/status-badge";
+import { DebtSuspensionAlert } from "@/components/wallet/debt-suspension-alert";
+import { WalletSummaryCard } from "@/components/wallet/wallet-summary-card";
 import { createClient } from "@/lib/supabase/client";
-import { formatDateTime } from "@/lib/utils";
+import { formatCurrencyARS, formatDateTime } from "@/lib/utils";
 import type { Ride } from "@/lib/types";
+import { shouldSuspendDriver } from "@/lib/wallet";
 
 type Props = {
   initialAvailable: Ride[];
   initialActive: Ride[];
+  walletBalance: number;
+  walletLimitNegative: number;
+  isSuspended: boolean;
+  pendingCommission: number;
+  totalPayments: number;
+  latestMovementAt: string | null;
 };
 
-export function DriverDashboard({ initialAvailable, initialActive }: Props) {
+export function DriverDashboard({
+  initialAvailable,
+  initialActive,
+  walletBalance,
+  walletLimitNegative,
+  isSuspended,
+  pendingCommission,
+  totalPayments,
+  latestMovementAt,
+}: Props) {
   const router = useRouter();
   const [availableRides, setAvailableRides] = useState(initialAvailable);
   const [activeRides, setActiveRides] = useState(initialActive);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const blockedByDebt = isSuspended || shouldSuspendDriver(walletBalance, walletLimitNegative);
 
   const reloadAvailable = async () => {
     const supabase = createClient();
@@ -36,6 +55,11 @@ export function DriverDashboard({ initialAvailable, initialActive }: Props) {
   };
 
   const acceptRide = async (rideId: string) => {
+    if (blockedByDebt) {
+      toast.error(`Deuda ${formatCurrencyARS(Math.abs(walletBalance))}. Pagar a este alias: fuegodriver (titular Nahuel Ramos)`);
+      return;
+    }
+
     setAcceptingId(rideId);
 
     const supabase = createClient();
@@ -44,6 +68,8 @@ export function DriverDashboard({ initialAvailable, initialActive }: Props) {
     if (rpcError) {
       if (rpcError.message.includes("RIDE_NOT_AVAILABLE")) {
         toast.error("Otro conductor ya tomó este viaje.");
+      } else if (rpcError.message.includes("DRIVER_SUSPENDED_DEBT")) {
+        toast.error(`Deuda ${formatCurrencyARS(Math.abs(walletBalance))}. Pagar a este alias: fuegodriver (titular Nahuel Ramos)`);
       } else {
         toast.error("No se pudo aceptar el viaje.");
       }
@@ -62,6 +88,24 @@ export function DriverDashboard({ initialAvailable, initialActive }: Props) {
 
   return (
     <div className="space-y-6">
+      {blockedByDebt ? <DebtSuspensionAlert balance={walletBalance} /> : null}
+      <section className="grid gap-3 md:grid-cols-3">
+        <WalletSummaryCard title="Saldo actual" value={walletBalance} />
+        <WalletSummaryCard title="Comisiones pendientes" value={pendingCommission} />
+        <WalletSummaryCard
+          title="Pagos registrados"
+          value={totalPayments}
+          caption={latestMovementAt ? `Último movimiento: ${formatDateTime(latestMovementAt)}` : "Sin movimientos"}
+        />
+      </section>
+      <div className="flex justify-end">
+        <Link
+          href="/driver/wallet"
+          className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+        >
+          Ver wallet
+        </Link>
+      </div>
       <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">Viajes disponibles</h2>
@@ -89,10 +133,10 @@ export function DriverDashboard({ initialAvailable, initialActive }: Props) {
                   </div>
                   <button
                     onClick={() => acceptRide(ride.id)}
-                    disabled={acceptingId === ride.id}
+                    disabled={acceptingId === ride.id || blockedByDebt}
                     className="mt-3 w-full rounded-xl bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-70"
                   >
-                    {acceptingId === ride.id ? "Aceptando..." : "Aceptar"}
+                    {blockedByDebt ? "Bloqueado por deuda" : acceptingId === ride.id ? "Aceptando..." : "Aceptar"}
                   </button>
                 </article>
               ))

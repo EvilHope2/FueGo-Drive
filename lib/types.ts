@@ -1,4 +1,5 @@
 ﻿import type { RideStatus, ZoneName } from "@/lib/constants";
+import type { DriverWalletStatus } from "@/lib/wallet";
 
 export type Role = "customer" | "driver" | "admin";
 
@@ -8,9 +9,13 @@ export type Profile = {
   full_name: string | null;
   phone: string | null;
   email?: string | null;
+  driver_account_status?: DriverWalletStatus;
+  wallet_limit_negative?: number;
   created_at: string;
   updated_at: string;
 };
+
+export type RidePaymentMethod = "cash" | "transfer" | "platform" | "unknown";
 
 export type Ride = {
   id: string;
@@ -28,6 +33,7 @@ export type Ride = {
   commission_percent: number | null;
   commission_amount: number | null;
   driver_earnings: number | null;
+  payment_method: RidePaymentMethod;
   is_settled: boolean;
   settled_at: string | null;
   note: string | null;
@@ -67,3 +73,19 @@ export type AppSettings = {
   updated_at: string;
 };
 
+export type DriverWalletTransactionType = "commission_charge" | "payment" | "adjustment";
+export type WalletPaymentMethod = "cash" | "transfer" | "platform" | "manual";
+
+export type DriverWalletTransaction = {
+  id: string;
+  driver_id: string;
+  ride_id: string | null;
+  type: DriverWalletTransactionType;
+  amount: number;
+  description: string;
+  payment_method: WalletPaymentMethod | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  ride?: Pick<Ride, "id" | "origin_address" | "destination_address" | "status"> | null;
+};

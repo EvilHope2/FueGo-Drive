@@ -30,6 +30,7 @@ const driverActions: { label: string; status: RideStatus; tone?: "danger" }[] = 
 export function DriverRideDetail({ rideId, initialRide }: Props) {
   const [ride, setRide] = useState(initialRide);
   const [loadingStatus, setLoadingStatus] = useState<RideStatus | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState(ride.payment_method ?? "unknown");
 
   useEffect(() => {
     const supabase = createClient();
@@ -41,7 +42,11 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
         .eq("id", rideId)
         .single();
 
-      if (data) setRide(data as Ride);
+      if (data) {
+        const nextRide = data as Ride;
+        setRide(nextRide);
+        setPaymentMethod(nextRide.payment_method ?? "unknown");
+      }
     };
 
     const interval = setInterval(fetchRide, 4000);
@@ -49,12 +54,17 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
   }, [rideId]);
 
   const updateStatus = async (status: RideStatus) => {
+    if (status === "Finalizado" && paymentMethod === "unknown") {
+      toast.error("Seleccioná cómo cobraste el viaje antes de finalizar.");
+      return;
+    }
+
     setLoadingStatus(status);
     const supabase = createClient();
 
     const { data, error } = await supabase
       .from("rides")
-      .update({ status })
+      .update({ status, payment_method: paymentMethod })
       .eq("id", ride.id)
       .select("*,customer_profile:profiles!rides_customer_id_fkey(full_name,phone)")
       .single();
@@ -72,7 +82,9 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
     }
 
     if (data) {
-      setRide(data as Ride);
+      const nextRide = data as Ride;
+      setRide(nextRide);
+      setPaymentMethod(nextRide.payment_method ?? paymentMethod);
       toast.success("Estado actualizado.");
     }
 
@@ -110,6 +122,19 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
             Zonas: {ride.from_zone ?? "-"} {"->"} {ride.to_zone ?? "-"}
           </p>
           {ride.note ? <p>Nota: {ride.note}</p> : null}
+          <div>
+            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Método de cobro</label>
+            <select
+              value={paymentMethod}
+              onChange={(event) => setPaymentMethod(event.target.value as Ride["payment_method"])}
+              className="field"
+            >
+              <option value="unknown">Desconocido</option>
+              <option value="cash">Efectivo</option>
+              <option value="transfer">Transferencia</option>
+              <option value="platform">Plataforma</option>
+            </select>
+          </div>
         </div>
 
         <div className="mt-3">

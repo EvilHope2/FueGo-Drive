@@ -211,6 +211,37 @@ before update on public.rides
 for each row
 execute function public.validate_ride_status_transition();
 
+create or replace function public.enforce_driver_ride_update_scope()
+returns trigger
+language plpgsql
+as $$
+begin
+  if tg_op <> 'UPDATE' then
+    return new;
+  end if;
+
+  if public.current_role() = 'driver' and old.driver_id = auth.uid() then
+    if new.estimated_price is distinct from old.estimated_price
+      or new.commission_percent is distinct from old.commission_percent
+      or new.commission_amount is distinct from old.commission_amount
+      or new.driver_earnings is distinct from old.driver_earnings
+      or new.customer_id is distinct from old.customer_id
+      or new.driver_id is distinct from old.driver_id
+    then
+      raise exception 'DRIVER_UPDATE_NOT_ALLOWED';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists rides_driver_scope_guard on public.rides;
+create trigger rides_driver_scope_guard
+before update on public.rides
+for each row
+execute function public.enforce_driver_ride_update_scope();
+
 create or replace function public.accept_ride(p_ride_id uuid)
 returns public.rides
 language plpgsql
@@ -415,4 +446,211 @@ insert into public.zone_base_prices (from_zone, to_zone, base_price)
 select from_zone, to_zone, base_price from expanded
 on conflict (from_zone, to_zone) do update
 set base_price = excluded.base_price;
+
+-- Wallet conductores + suspensión por deuda
+alter table public.rides add column if not exists payment_method text not null default 'unknown';
+alter table public.profiles add column if not exists driver_account_status text not null default 'active';
+alter table public.profiles add column if not exists wallet_limit_negative numeric not null default -20000;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'rides_payment_method_check'
+  ) then
+    alter table public.rides
+      add constraint rides_payment_method_check
+      check (payment_method in ('cash','transfer','platform','unknown'));
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'profiles_driver_account_status_check'
+  ) then
+    alter table public.profiles
+      add constraint profiles_driver_account_status_check
+      check (driver_account_status in ('active','suspended_debt'));
+  end if;
+end $$;
+
+create table if not exists public.driver_wallet_transactions (
+  id uuid primary key default gen_random_uuid(),
+  driver_id uuid not null references public.profiles(id),
+  ride_id uuid references public.rides(id),
+  type text not null check (type in ('commission_charge','payment','adjustment')),
+  amount numeric not null,
+  description text not null,
+  payment_method text check (payment_method in ('cash','transfer','platform','manual')),
+  notes text,
+  created_by uuid references public.profiles(id),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists dwt_driver_idx on public.driver_wallet_transactions(driver_id);
+create index if not exists dwt_ride_idx on public.driver_wallet_transactions(ride_id);
+create index if not exists dwt_created_idx on public.driver_wallet_transactions(created_at desc);
+
+create or replace function public.refresh_driver_account_status(p_driver_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_balance numeric;
+  v_limit numeric;
+begin
+  select coalesce(sum(amount), 0) into v_balance
+  from public.driver_wallet_transactions
+  where driver_id = p_driver_id;
+
+  select wallet_limit_negative into v_limit
+  from public.profiles
+  where id = p_driver_id;
+
+  if v_limit is null then
+    v_limit := -20000;
+  end if;
+
+  update public.profiles
+  set driver_account_status = case when v_balance <= v_limit then 'suspended_debt' else 'active' end
+  where id = p_driver_id and role = 'driver';
+end;
+$$;
+
+create or replace function public.handle_wallet_transaction_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if tg_op = 'DELETE' then
+    perform public.refresh_driver_account_status(old.driver_id);
+    return old;
+  end if;
+
+  perform public.refresh_driver_account_status(new.driver_id);
+  return new;
+end;
+$$;
+
+drop trigger if exists wallet_transactions_refresh_driver on public.driver_wallet_transactions;
+create trigger wallet_transactions_refresh_driver
+after insert or update or delete on public.driver_wallet_transactions
+for each row execute function public.handle_wallet_transaction_change();
+
+create or replace function public.create_wallet_commission_charge_for_ride()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'Finalizado'
+    and old.status is distinct from new.status
+    and new.driver_id is not null
+    and new.payment_method in ('cash','transfer')
+    and not exists (
+      select 1 from public.driver_wallet_transactions
+      where ride_id = new.id
+        and type = 'commission_charge'
+    )
+  then
+    insert into public.driver_wallet_transactions (
+      driver_id,
+      ride_id,
+      type,
+      amount,
+      description,
+      payment_method,
+      notes
+    ) values (
+      new.driver_id,
+      new.id,
+      'commission_charge',
+      (coalesce(new.commission_amount, 0) * -1),
+      'Comisión por viaje',
+      new.payment_method,
+      null
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists rides_wallet_commission on public.rides;
+create trigger rides_wallet_commission
+after update on public.rides
+for each row execute function public.create_wallet_commission_charge_for_ride();
+
+create or replace function public.accept_ride(p_ride_id uuid)
+returns public.rides
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_ride public.rides;
+  v_profile public.profiles;
+begin
+  if auth.uid() is null then
+    raise exception 'UNAUTHENTICATED';
+  end if;
+
+  select * into v_profile
+  from public.profiles
+  where id = auth.uid();
+
+  if v_profile.role <> 'driver' then
+    raise exception 'NOT_DRIVER';
+  end if;
+
+  if v_profile.driver_account_status = 'suspended_debt' then
+    raise exception 'DRIVER_SUSPENDED_DEBT';
+  end if;
+
+  update public.rides
+  set
+    driver_id = auth.uid(),
+    status = 'Aceptado',
+    accepted_at = coalesce(accepted_at, now()),
+    updated_at = now()
+  where id = p_ride_id
+    and driver_id is null
+    and status = 'Solicitado'
+  returning * into v_ride;
+
+  if v_ride.id is null then
+    raise exception 'RIDE_NOT_AVAILABLE';
+  end if;
+
+  return v_ride;
+end;
+$$;
+
+revoke all on function public.accept_ride(uuid) from public;
+grant execute on function public.accept_ride(uuid) to authenticated;
+
+alter table public.driver_wallet_transactions enable row level security;
+
+drop policy if exists "wallet_driver_select_own" on public.driver_wallet_transactions;
+drop policy if exists "wallet_admin_all" on public.driver_wallet_transactions;
+
+create policy "wallet_driver_select_own"
+on public.driver_wallet_transactions
+for select
+using (driver_id = auth.uid());
+
+create policy "wallet_admin_all"
+on public.driver_wallet_transactions
+for all
+using (public.current_role() = 'admin')
+with check (public.current_role() = 'admin');
 

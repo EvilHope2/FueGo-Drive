@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -67,6 +68,14 @@ export function LiquidationsDashboard({ initialRides, driverNames }: Props) {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Link
+          href="/admin/wallets"
+          className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+        >
+          Ir a wallets
+        </Link>
+      </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MoneyCard label="Finalizados (7 días)" value={String(summary.trips)} />
         <MoneyCard label="Total facturado" value={formatCurrencyARS(summary.totalBilled)} />
@@ -78,4 +87,3 @@ export function LiquidationsDashboard({ initialRides, driverNames }: Props) {
     </div>
   );
 }
-
