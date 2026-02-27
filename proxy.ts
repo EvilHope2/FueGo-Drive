@@ -31,12 +31,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  const { supabase, response } = await updateSession(request);
+  const { supabase, response, user } = await updateSession(request);
   const pathname = request.nextUrl.pathname;
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   let role: Role | null = null;
 
@@ -58,10 +54,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (user && isPublic && pathname !== "/") {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = getDefaultPath(role);
-    return NextResponse.redirect(redirectUrl);
+  if (user && role && isPublic && pathname !== "/") {
+    const targetPath = getDefaultPath(role);
+    if (targetPath !== pathname) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = targetPath;
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   if (user && role) {
@@ -69,9 +68,12 @@ export async function proxy(request: NextRequest) {
     const privateRoot = Object.values(PRIVATE_BY_ROLE).flat().some((root) => pathname.startsWith(root));
 
     if (privateRoot && !allowedRoots.some((root) => pathname.startsWith(root))) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = getDefaultPath(role);
-      return NextResponse.redirect(redirectUrl);
+      const targetPath = getDefaultPath(role);
+      if (targetPath !== pathname) {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = targetPath;
+        return NextResponse.redirect(redirectUrl);
+      }
     }
   }
 
