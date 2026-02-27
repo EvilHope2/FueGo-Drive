@@ -39,30 +39,34 @@ export function LoginForm() {
     setError(null);
     setNotice(null);
 
-    const supabase = createClient();
-    const { data, error: signInError } = await supabase.auth.signInWithPassword(values);
+    try {
+      const supabase = createClient();
+      const { data, error: signInError } = await supabase.auth.signInWithPassword(values);
 
-    if (signInError || !data.user) {
-      const message = signInError?.message ?? "No se pudo iniciar sesion";
-      if (message.toLowerCase().includes("email not confirmed")) {
-        setError("Tu email no esta confirmado. Revisa tu casilla y confirma la cuenta.");
-      } else {
-        setError(message);
+      if (signInError || !data.user) {
+        const message = signInError?.message ?? "No se pudo iniciar sesion";
+        if (message.toLowerCase().includes("email not confirmed")) {
+          setError("Tu email no esta confirmado. Revisa tu casilla y confirma la cuenta.");
+        } else {
+          setError(message);
+        }
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-      return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+      const role = (profile?.role as Role | undefined) ?? "customer";
+
+      router.push(ROLE_PATHS[role]);
+      router.refresh();
+    } catch {
+      setError("Error de configuracion. Revisa variables de entorno en Vercel y recarga.");
     }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", data.user.id)
-      .single();
-
-    const role = (profile?.role as Role | undefined) ?? "customer";
-
-    router.push(ROLE_PATHS[role]);
-    router.refresh();
     setLoading(false);
   };
 
@@ -77,21 +81,25 @@ export function LoginForm() {
     setError(null);
     setNotice(null);
 
-    const supabase = createClient();
-    const emailRedirectTo = `${window.location.origin}/login`;
-    const { error: resendError } = await supabase.auth.resend({
-      type: "signup",
-      email,
-      options: { emailRedirectTo },
-    });
+    try {
+      const supabase = createClient();
+      const emailRedirectTo = `${window.location.origin}/login`;
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo },
+      });
 
-    if (resendError) {
-      setError(resendError.message);
-      setResending(false);
-      return;
+      if (resendError) {
+        setError(resendError.message);
+        setResending(false);
+        return;
+      }
+
+      setNotice("Te reenviamos el email de verificacion.");
+    } catch {
+      setError("Error de configuracion. Revisa variables de entorno en Vercel y recarga.");
     }
-
-    setNotice("Te reenviamos el email de verificacion.");
     setResending(false);
   };
 

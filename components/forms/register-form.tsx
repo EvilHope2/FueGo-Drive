@@ -41,35 +41,39 @@ export function RegisterForm({ role }: Props) {
     setError(null);
     setSuccess(null);
 
-    const supabase = createClient();
-    const emailRedirectTo = `${window.location.origin}/login`;
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        emailRedirectTo,
-        data: {
-          role,
-          full_name: values.fullName,
-          phone: values.phone,
+    try {
+      const supabase = createClient();
+      const emailRedirectTo = `${window.location.origin}/login`;
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          emailRedirectTo,
+          data: {
+            role,
+            full_name: values.fullName,
+            phone: values.phone,
+          },
         },
-      },
-    });
+      });
 
-    if (signUpError) {
-      setError(signUpError.message);
-      setLoading(false);
-      return;
+      if (signUpError) {
+        setError(signUpError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (!signUpData.session) {
+        setSuccess("Cuenta creada. Revisa tu email para confirmar la cuenta y luego ingresa.");
+        setLoading(false);
+        return;
+      }
+
+      router.push(ROLE_PATHS[role]);
+      router.refresh();
+    } catch {
+      setError("Error de configuracion. Revisa variables de entorno en Vercel y recarga.");
     }
-
-    if (!signUpData.session) {
-      setSuccess("Cuenta creada. Revisa tu email para confirmar la cuenta y luego ingresa.");
-      setLoading(false);
-      return;
-    }
-
-    router.push(ROLE_PATHS[role]);
-    router.refresh();
     setLoading(false);
   };
 
