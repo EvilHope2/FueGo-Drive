@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,7 +22,6 @@ export function LoginForm() {
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-  const router = useRouter();
 
   const {
     register,
@@ -75,8 +73,8 @@ export function LoginForm() {
 
       const role = (profile?.role as Role | undefined) ?? inferredRole;
 
-      router.push(ROLE_PATHS[role]);
-      router.refresh();
+      window.location.assign(ROLE_PATHS[role]);
+      return;
     } catch {
       setError("Error de configuracion. Revisa variables de entorno en Vercel y recarga.");
     }
@@ -165,3 +163,4 @@ export function LoginForm() {
     </form>
   );
 }
+

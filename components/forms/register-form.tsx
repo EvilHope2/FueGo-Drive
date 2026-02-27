@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -28,7 +27,6 @@ export function RegisterForm({ role }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const {
     register,
@@ -69,8 +67,8 @@ export function RegisterForm({ role }: Props) {
         return;
       }
 
-      router.push(ROLE_PATHS[role]);
-      router.refresh();
+      window.location.assign(ROLE_PATHS[role]);
+      return;
     } catch {
       setError("Error de configuracion. Revisa variables de entorno en Vercel y recarga.");
     }
@@ -141,3 +139,4 @@ export function RegisterForm({ role }: Props) {
     </form>
   );
 }
+
