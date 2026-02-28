@@ -9,13 +9,16 @@ export type Profile = {
   full_name: string | null;
   phone: string | null;
   email?: string | null;
+  vehicle_plate?: string | null;
+  vehicle_brand?: string | null;
+  vehicle_model_year?: string | null;
   driver_account_status?: DriverWalletStatus;
   wallet_limit_negative?: number;
   created_at: string;
   updated_at: string;
 };
 
-export type RidePaymentMethod = "cash" | "transfer" | "platform" | "unknown";
+export type RidePaymentMethod = "cash" | "transfer";
 
 export type Ride = {
   id: string;
@@ -49,7 +52,7 @@ export type Ride = {
   finished_at: string | null;
   canceled_at: string | null;
   customer_profile?: Pick<Profile, "full_name" | "phone"> | null;
-  driver_profile?: Pick<Profile, "full_name" | "phone"> | null;
+  driver_profile?: Pick<Profile, "full_name" | "phone" | "vehicle_plate" | "vehicle_brand" | "vehicle_model_year"> | null;
 };
 
 export type ZoneBasePrice = {

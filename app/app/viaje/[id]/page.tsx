@@ -15,7 +15,7 @@ export default async function CustomerRidePage({ params }: Props) {
 
   const { data: ride } = await supabase
     .from("rides")
-    .select("*,driver_profile:profiles!rides_driver_id_fkey(full_name,phone)")
+    .select("*,driver_profile:profiles!rides_driver_id_fkey(full_name,phone,vehicle_plate,vehicle_brand,vehicle_model_year)")
     .eq("id", id)
     .eq("customer_id", profile.id)
     .single();

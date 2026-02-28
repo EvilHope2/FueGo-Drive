@@ -23,10 +23,13 @@ const schema = z.object({
   toNeighborhood: z.string().min(1, "Selecciona barrio destino"),
   customerName: z.string().min(2, "Ingresa nombre"),
   customerPhone: z.string().min(8, "Ingresa WhatsApp"),
+  paymentMethod: z
+    .string()
+    .refine((value) => value === "cash" || value === "transfer", "Seleccioná un método de pago"),
   note: z.string().max(200).optional(),
 });
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.input<typeof schema>;
 
 type Props = {
   profile: Profile;
@@ -57,6 +60,7 @@ export function CustomerDashboard({
     defaultValues: {
       customerName: profile.full_name ?? "",
       customerPhone: profile.phone ?? "",
+      paymentMethod: "",
     },
   });
 
@@ -121,6 +125,7 @@ export function CustomerDashboard({
         driver_earnings: economics.driverEarnings,
         customer_name: values.customerName,
         customer_phone: values.customerPhone,
+        payment_method: values.paymentMethod as Ride["payment_method"],
         note: values.note?.trim() || null,
         status: "Solicitado",
       })
@@ -142,6 +147,7 @@ export function CustomerDashboard({
       toNeighborhood: "",
       customerName: values.customerName,
       customerPhone: values.customerPhone,
+      paymentMethod: "",
       note: "",
     });
     setLoading(false);
@@ -229,6 +235,16 @@ export function CustomerDashboard({
                 <input {...register("customerPhone")} className="field" />
                 {errors.customerPhone ? <p className="error">{errors.customerPhone.message}</p> : null}
               </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Método de pago</label>
+              <select {...register("paymentMethod")} className="field">
+                <option value="">Seleccionar</option>
+                <option value="cash">Efectivo</option>
+                <option value="transfer">Transferencia</option>
+              </select>
+              {errors.paymentMethod ? <p className="error">{errors.paymentMethod.message}</p> : null}
             </div>
 
             <div>

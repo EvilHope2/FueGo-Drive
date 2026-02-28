@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { MoneyCard } from "@/components/common/money-card";
+import { PaymentMethodBadge } from "@/components/common/payment-method-badge";
 import { SettlementStatusBadge } from "@/components/common/settlement-status-badge";
 import { StatusBadge } from "@/components/common/status-badge";
 import { RIDE_STATUSES } from "@/lib/constants";
@@ -115,7 +116,10 @@ export function AdminDashboard({ initialRides }: Props) {
                 <p>Estimado: {formatCurrencyARS(ride.estimated_price ?? null)}</p>
                 <p>Comisión: {formatCurrencyARS(ride.commission_amount ?? null)}</p>
                 <p>Ganancia conductor: {formatCurrencyARS(ride.driver_earnings ?? null)}</p>
-                <p>Método cobro: {ride.payment_method ?? "unknown"}</p>
+                <div className="flex items-center gap-2">
+                  <p>Método de pago:</p>
+                  <PaymentMethodBadge method={ride.payment_method} />
+                </div>
               </div>
               {ride.status !== "Finalizado" && ride.status !== "Cancelado" ? (
                 <button

@@ -7,16 +7,19 @@ import { toast } from "sonner";
 import { RidePriceSummary } from "@/components/common/ride-price-summary";
 import { RideStepper } from "@/components/common/ride-stepper";
 import { StatusBadge } from "@/components/common/status-badge";
+import { DriverVehicleCard } from "@/components/common/driver-vehicle-card";
+import { PaymentMethodBadge } from "@/components/common/payment-method-badge";
 import { WhatsAppFixedButton } from "@/components/common/whatsapp-fixed-button";
 import { WHATSAPP_MESSAGE, type RideStatus } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateTime } from "@/lib/utils";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
-import type { Ride } from "@/lib/types";
+import type { Profile, Ride } from "@/lib/types";
 
 type Props = {
   rideId: string;
   initialRide: Ride;
+  driverProfile: Profile;
 };
 
 const driverActions: { label: string; status: RideStatus; tone?: "danger" }[] = [
@@ -27,10 +30,9 @@ const driverActions: { label: string; status: RideStatus; tone?: "danger" }[] = 
   { label: "Cancelar", status: "Cancelado", tone: "danger" },
 ];
 
-export function DriverRideDetail({ rideId, initialRide }: Props) {
+export function DriverRideDetail({ rideId, initialRide, driverProfile }: Props) {
   const [ride, setRide] = useState(initialRide);
   const [loadingStatus, setLoadingStatus] = useState<RideStatus | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState(ride.payment_method ?? "unknown");
 
   useEffect(() => {
     const supabase = createClient();
@@ -45,7 +47,6 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
       if (data) {
         const nextRide = data as Ride;
         setRide(nextRide);
-        setPaymentMethod(nextRide.payment_method ?? "unknown");
       }
     };
 
@@ -54,17 +55,12 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
   }, [rideId]);
 
   const updateStatus = async (status: RideStatus) => {
-    if (status === "Finalizado" && paymentMethod === "unknown") {
-      toast.error("Seleccioná cómo cobraste el viaje antes de finalizar.");
-      return;
-    }
-
     setLoadingStatus(status);
     const supabase = createClient();
 
     const { data, error } = await supabase
       .from("rides")
-      .update({ status, payment_method: paymentMethod })
+      .update({ status })
       .eq("id", ride.id)
       .select("*,customer_profile:profiles!rides_customer_id_fkey(full_name,phone)")
       .single();
@@ -84,7 +80,6 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
     if (data) {
       const nextRide = data as Ride;
       setRide(nextRide);
-      setPaymentMethod(nextRide.payment_method ?? paymentMethod);
       toast.success("Estado actualizado.");
     }
 
@@ -122,18 +117,9 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
             Zonas: {ride.from_zone ?? "-"} {"->"} {ride.to_zone ?? "-"}
           </p>
           {ride.note ? <p>Nota: {ride.note}</p> : null}
-          <div>
-            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Método de cobro</label>
-            <select
-              value={paymentMethod}
-              onChange={(event) => setPaymentMethod(event.target.value as Ride["payment_method"])}
-              className="field"
-            >
-              <option value="unknown">Desconocido</option>
-              <option value="cash">Efectivo</option>
-              <option value="transfer">Transferencia</option>
-              <option value="platform">Plataforma</option>
-            </select>
+          <div className="flex items-center gap-2">
+            <p>Método de pago:</p>
+            <PaymentMethodBadge method={ride.payment_method} />
           </div>
         </div>
 
@@ -151,6 +137,15 @@ export function DriverRideDetail({ rideId, initialRide }: Props) {
           <RideStepper status={ride.status} />
         </div>
       </section>
+
+      <DriverVehicleCard
+        title="Mi vehículo"
+        fullName={driverProfile.full_name}
+        phone={driverProfile.phone}
+        vehiclePlate={driverProfile.vehicle_plate}
+        vehicleBrand={driverProfile.vehicle_brand}
+        vehicleModelYear={driverProfile.vehicle_model_year}
+      />
 
       {!isLocked ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

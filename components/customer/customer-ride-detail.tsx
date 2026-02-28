@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { RidePriceSummary } from "@/components/common/ride-price-summary";
 import { RideStepper } from "@/components/common/ride-stepper";
 import { StatusBadge } from "@/components/common/status-badge";
+import { DriverVehicleCard } from "@/components/common/driver-vehicle-card";
+import { PaymentMethodBadge } from "@/components/common/payment-method-badge";
 import { WhatsAppFixedButton } from "@/components/common/whatsapp-fixed-button";
 import { WHATSAPP_MESSAGE } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
@@ -29,7 +31,7 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
     const fetchRide = async () => {
       const { data } = await supabase
         .from("rides")
-        .select("*,driver_profile:profiles!rides_driver_id_fkey(full_name,phone)")
+        .select("*,driver_profile:profiles!rides_driver_id_fkey(full_name,phone,vehicle_plate,vehicle_brand,vehicle_model_year)")
         .eq("id", rideId)
         .single();
 
@@ -51,7 +53,7 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
       .from("rides")
       .update({ status: "Cancelado" })
       .eq("id", ride.id)
-      .select("*,driver_profile:profiles!rides_driver_id_fkey(full_name,phone)")
+      .select("*,driver_profile:profiles!rides_driver_id_fkey(full_name,phone,vehicle_plate,vehicle_brand,vehicle_model_year)")
       .single();
 
     if (error) {
@@ -91,6 +93,10 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
           <p>
             Zonas: {ride.from_zone ?? "-"} {"->"} {ride.to_zone ?? "-"}
           </p>
+          <div className="flex items-center gap-2">
+            <span>Método de pago:</span>
+            <PaymentMethodBadge method={ride.payment_method} />
+          </div>
         </div>
 
         <div className="mt-3">
@@ -102,17 +108,21 @@ export function CustomerRideDetail({ rideId, initialRide }: Props) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="text-base font-semibold text-slate-900">Conductor</h3>
-        {ride.driver_id ? (
-          <div className="mt-3 space-y-1 text-sm text-slate-700">
-            <p>{ride.driver_profile?.full_name ?? "Conductor asignado"}</p>
-            <p>WhatsApp: {driverPhone || "Sin telefono"}</p>
-          </div>
-        ) : (
+      {ride.driver_id ? (
+        <DriverVehicleCard
+          title="Tu conductor"
+          fullName={ride.driver_profile?.full_name}
+          phone={driverPhone}
+          vehiclePlate={ride.driver_profile?.vehicle_plate}
+          vehicleBrand={ride.driver_profile?.vehicle_brand}
+          vehicleModelYear={ride.driver_profile?.vehicle_model_year}
+        />
+      ) : (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Conductor</h3>
           <p className="mt-3 text-sm text-slate-600">Todavía no hay conductor asignado.</p>
-        )}
-      </section>
+        </section>
+      )}
 
       {canCancel ? (
         <button

@@ -1,7 +1,7 @@
 import { AppShell } from "@/components/common/app-shell";
 import { DriverDashboard } from "@/components/driver/driver-dashboard";
 import { requireProfile } from "@/lib/auth-server";
-import type { DriverWalletTransaction, Ride } from "@/lib/types";
+import type { DriverWalletTransaction, Profile, Ride } from "@/lib/types";
 import { calculateDriverWalletBalance } from "@/lib/wallet";
 
 export default async function DriverPage() {
@@ -54,6 +54,7 @@ export default async function DriverPage() {
         pendingCommission={pendingCommission}
         totalPayments={totalPayments}
         latestMovementAt={latestMovementAt}
+        profile={profile as Profile}
       />
     </AppShell>
   );

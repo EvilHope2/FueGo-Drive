@@ -69,6 +69,9 @@ export function LoginForm() {
           full_name: (data.user.user_metadata?.full_name as string | undefined) ?? data.user.email?.split("@")[0] ?? "Usuario",
           email: data.user.email ?? null,
           phone: (data.user.user_metadata?.phone as string | undefined) ?? "",
+          vehicle_plate: (data.user.user_metadata?.vehicle_plate as string | undefined) ?? null,
+          vehicle_brand: (data.user.user_metadata?.vehicle_brand as string | undefined) ?? null,
+          vehicle_model_year: (data.user.user_metadata?.vehicle_model_year as string | undefined) ?? null,
         });
       }
 

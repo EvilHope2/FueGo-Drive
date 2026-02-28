@@ -6,13 +6,15 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/common/empty-state";
+import { DriverVehicleCard } from "@/components/common/driver-vehicle-card";
+import { PaymentMethodBadge } from "@/components/common/payment-method-badge";
 import { RidePriceSummary } from "@/components/common/ride-price-summary";
 import { StatusBadge } from "@/components/common/status-badge";
 import { DebtSuspensionAlert } from "@/components/wallet/debt-suspension-alert";
 import { WalletSummaryCard } from "@/components/wallet/wallet-summary-card";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrencyARS, formatDateTime } from "@/lib/utils";
-import type { Ride } from "@/lib/types";
+import type { Profile, Ride } from "@/lib/types";
 import { shouldSuspendDriver } from "@/lib/wallet";
 
 type Props = {
@@ -24,6 +26,7 @@ type Props = {
   pendingCommission: number;
   totalPayments: number;
   latestMovementAt: string | null;
+  profile: Profile;
 };
 
 export function DriverDashboard({
@@ -35,6 +38,7 @@ export function DriverDashboard({
   pendingCommission,
   totalPayments,
   latestMovementAt,
+  profile,
 }: Props) {
   const router = useRouter();
   const [availableRides, setAvailableRides] = useState(initialAvailable);
@@ -98,13 +102,29 @@ export function DriverDashboard({
           caption={latestMovementAt ? `Último movimiento: ${formatDateTime(latestMovementAt)}` : "Sin movimientos"}
         />
       </section>
+      <DriverVehicleCard
+        title="Mi vehículo"
+        fullName={profile.full_name}
+        phone={profile.phone}
+        vehiclePlate={profile.vehicle_plate}
+        vehicleBrand={profile.vehicle_brand}
+        vehicleModelYear={profile.vehicle_model_year}
+      />
       <div className="flex justify-end">
-        <Link
-          href="/driver/wallet"
-          className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
-        >
-          Ver wallet
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/driver/perfil"
+            className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+          >
+            Mi perfil
+          </Link>
+          <Link
+            href="/driver/wallet"
+            className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+          >
+            Ver wallet
+          </Link>
+        </div>
       </div>
       <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -122,6 +142,10 @@ export function DriverDashboard({
                     {ride.origin_address ?? ride.origin} {"->"} {ride.destination_address ?? ride.destination}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">{formatDateTime(ride.created_at)}</p>
+                  <div className="mt-2 flex items-center gap-2 text-sm text-slate-700">
+                    <span>Pago:</span>
+                    <PaymentMethodBadge method={ride.payment_method} />
+                  </div>
                   <div className="mt-2">
                     <RidePriceSummary
                       estimatedPrice={ride.estimated_price}
@@ -162,6 +186,10 @@ export function DriverDashboard({
                     {ride.origin_address ?? ride.origin} {"->"} {ride.destination_address ?? ride.destination}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">{formatDateTime(ride.created_at)}</p>
+                  <div className="mt-2 flex items-center gap-2 text-sm text-slate-700">
+                    <span>Pago:</span>
+                    <PaymentMethodBadge method={ride.payment_method} />
+                  </div>
                   <div className="mt-2">
                     <RidePriceSummary
                       estimatedPrice={ride.estimated_price}

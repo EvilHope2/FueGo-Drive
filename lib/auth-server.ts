@@ -26,6 +26,9 @@ export async function requireProfile(expectedRole?: Role) {
       full_name: (user.user_metadata?.full_name as string | undefined) ?? user.email?.split("@")[0] ?? "Usuario",
       email: user.email ?? null,
       phone: (user.user_metadata?.phone as string | undefined) ?? "",
+      vehicle_plate: (user.user_metadata?.vehicle_plate as string | undefined) ?? null,
+      vehicle_brand: (user.user_metadata?.vehicle_brand as string | undefined) ?? null,
+      vehicle_model_year: (user.user_metadata?.vehicle_model_year as string | undefined) ?? null,
     });
 
     const { data: createdProfile } = await supabase.from("profiles").select("*").eq("id", user.id).single();

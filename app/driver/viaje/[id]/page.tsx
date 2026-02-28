@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/common/app-shell";
 import { DriverRideDetail } from "@/components/driver/driver-ride-detail";
 import { requireProfile } from "@/lib/auth-server";
-import type { Ride } from "@/lib/types";
+import type { Profile, Ride } from "@/lib/types";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -24,7 +24,7 @@ export default async function DriverRidePage({ params }: Props) {
 
   return (
     <AppShell title="Gestion del viaje" subtitle="Actualiza el estado y comunica llegada al cliente." roleLabel="Conductor">
-      <DriverRideDetail rideId={id} initialRide={ride as Ride} />
+      <DriverRideDetail rideId={id} initialRide={ride as Ride} driverProfile={profile as Profile} />
     </AppShell>
   );
 }

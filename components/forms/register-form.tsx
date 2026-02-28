@@ -16,10 +16,14 @@ const schema = z.object({
   email: z.string().email("Ingresa un email valido"),
   password: z.string().min(6, "Minimo 6 caracteres"),
   confirmPassword: z.string().min(6, "Confirma tu contrasena"),
-}).refine((values) => values.password === values.confirmPassword, {
-  path: ["confirmPassword"],
-  message: "Las contrasenas no coinciden",
-});
+  vehiclePlate: z.string().optional(),
+  vehicleBrand: z.string().optional(),
+  vehicleModelYear: z.string().optional(),
+})
+  .refine((values) => values.password === values.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Las contrasenas no coinciden",
+  });
 
 type FormValues = z.infer<typeof schema>;
 
@@ -44,6 +48,28 @@ export function RegisterForm({ role }: Props) {
     setSuccess(null);
 
     try {
+      const normalizedPlate = values.vehiclePlate?.trim().toUpperCase() ?? "";
+      const normalizedBrand = values.vehicleBrand?.trim() ?? "";
+      const normalizedModelYear = values.vehicleModelYear?.trim() ?? "";
+
+      if (role === "driver") {
+        if (!normalizedPlate) {
+          setError("Ingresa la patente.");
+          setLoading(false);
+          return;
+        }
+        if (!normalizedBrand) {
+          setError("Ingresa la marca del auto.");
+          setLoading(false);
+          return;
+        }
+        if (!normalizedModelYear) {
+          setError("Ingresa el modelo / año.");
+          setLoading(false);
+          return;
+        }
+      }
+
       const supabase = createClient();
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
       const emailRedirectTo = `${siteUrl}/login`;
@@ -56,6 +82,9 @@ export function RegisterForm({ role }: Props) {
             role,
             full_name: values.fullName,
             phone: values.phone,
+            vehicle_plate: role === "driver" ? normalizedPlate : null,
+            vehicle_brand: role === "driver" ? normalizedBrand : null,
+            vehicle_model_year: role === "driver" ? normalizedModelYear : null,
           },
         },
       });
@@ -104,6 +133,35 @@ export function RegisterForm({ role }: Props) {
         />
         {errors.phone ? <p className="mt-1 text-xs text-rose-600">{errors.phone.message}</p> : null}
       </div>
+
+      {role === "driver" ? (
+        <>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Patente</label>
+            <input
+              {...register("vehiclePlate")}
+              placeholder="AB123CD"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm uppercase text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Marca del auto</label>
+            <input
+              {...register("vehicleBrand")}
+              placeholder="Fiat"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Modelo / año</label>
+            <input
+              {...register("vehicleModelYear")}
+              placeholder="Cronos 2022"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+        </>
+      ) : null}
 
       <div>
         <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
