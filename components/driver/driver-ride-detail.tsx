@@ -89,6 +89,19 @@ export function DriverRideDetail({ rideId, initialRide, driverProfile }: Props) 
   const isLocked = ride.status === "Finalizado" || ride.status === "Cancelado";
   const customerPhone = ride.customer_phone;
   const whatsappHref = useMemo(() => buildWhatsAppLink(customerPhone, WHATSAPP_MESSAGE), [customerPhone]);
+  const originAddress = ride.origin_address ?? ride.origin;
+  const destinationAddress = ride.destination_address ?? ride.destination;
+  const originMapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(originAddress ?? "")}`;
+  const destinationMapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destinationAddress ?? "")}`;
+
+  const showNavigation = !["Solicitado", "Finalizado", "Cancelado"].includes(ride.status);
+  const prioritizeOrigin = ride.status === "Aceptado" || ride.status === "En camino";
+  const prioritizeDestination = ride.status === "Llegando" || ride.status === "Afuera";
+  const navigationHint = prioritizeOrigin
+    ? "Primero dirigite al punto de origen del pasajero"
+    : prioritizeDestination
+      ? "Ahora seguí hacia el destino final"
+      : null;
 
   return (
     <div className="space-y-5 pb-24">
@@ -103,7 +116,7 @@ export function DriverRideDetail({ rideId, initialRide, driverProfile }: Props) 
         </div>
 
         <p className="mt-1 text-sm text-slate-700">
-          {ride.origin_address ?? ride.origin} {"->"} {ride.destination_address ?? ride.destination}
+          {originAddress} {"->"} {destinationAddress}
         </p>
         <p className="mt-1 text-xs text-slate-500">Creado: {formatDateTime(ride.created_at)}</p>
 
@@ -146,6 +159,39 @@ export function DriverRideDetail({ rideId, initialRide, driverProfile }: Props) 
         vehicleBrand={driverProfile.vehicle_brand}
         vehicleModelYear={driverProfile.vehicle_model_year}
       />
+
+      {showNavigation ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Navegación</h3>
+          {navigationHint ? <p className="mt-1 text-sm text-slate-600">{navigationHint}</p> : null}
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <a
+              href={originMapsLink}
+              target="_blank"
+              rel="noreferrer"
+              className={`rounded-xl px-4 py-3 text-center text-sm font-semibold transition ${
+                prioritizeOrigin
+                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                  : "border border-slate-300 bg-white text-slate-700 hover:border-indigo-200 hover:bg-indigo-50"
+              }`}
+            >
+              Ir al origen
+            </a>
+            <a
+              href={destinationMapsLink}
+              target="_blank"
+              rel="noreferrer"
+              className={`rounded-xl px-4 py-3 text-center text-sm font-semibold transition ${
+                prioritizeDestination
+                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                  : "border border-slate-300 bg-white text-slate-700 hover:border-indigo-200 hover:bg-indigo-50"
+              }`}
+            >
+              Ir al destino final
+            </a>
+          </div>
+        </section>
+      ) : null}
 
       {!isLocked ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
