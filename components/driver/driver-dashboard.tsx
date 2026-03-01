@@ -45,6 +45,7 @@ export function DriverDashboard({
   const [activeRides, setActiveRides] = useState(initialActive);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const blockedByDebt = isSuspended || shouldSuspendDriver(walletBalance, walletLimitNegative);
+  const commissionAlias = "Fuegodriver";
 
   const reloadAvailable = async () => {
     const supabase = createClient();
@@ -95,7 +96,16 @@ export function DriverDashboard({
       {blockedByDebt ? <DebtSuspensionAlert balance={walletBalance} /> : null}
       <section className="grid gap-3 md:grid-cols-3">
         <WalletSummaryCard title="Saldo actual" value={walletBalance} />
-        <WalletSummaryCard title="Comisiones pendientes" value={pendingCommission} />
+        <WalletSummaryCard title="Comisiones pendientes" value={pendingCommission}>
+          <button
+            type="button"
+            onClick={copyCommissionAlias}
+            className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+          >
+            Pagar comision
+          </button>
+          <p className="mt-2 text-xs text-slate-600">Alias: {commissionAlias} | Titular: Nahuel David Ramos</p>
+        </WalletSummaryCard>
         <WalletSummaryCard
           title="Pagos registrados"
           value={totalPayments}
@@ -215,3 +225,11 @@ export function DriverDashboard({
   );
 }
 
+  const copyCommissionAlias = async () => {
+    try {
+      await navigator.clipboard.writeText(commissionAlias);
+      toast.success("Alias copiado.");
+    } catch {
+      toast.error("No se pudo copiar el alias.");
+    }
+  };

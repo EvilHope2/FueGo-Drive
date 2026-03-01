@@ -7,10 +7,17 @@ import type { AffiliateEarning } from "@/lib/types";
 export default async function AffiliatePage() {
   const { supabase, profile } = await requireProfile("affiliate");
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const baseUrl = siteUrl.replace(/\/$/, "");
 
   const affiliateCode = profile.affiliate_code ?? "SIN-CODIGO";
-  const referralLink =
+  const rawReferralLink =
     profile.affiliate_referral_link ?? (affiliateCode !== "SIN-CODIGO" ? buildAffiliateReferralLink(siteUrl, affiliateCode) : "-");
+  const referralLink =
+    rawReferralLink.startsWith("http://") || rawReferralLink.startsWith("https://")
+      ? rawReferralLink
+      : rawReferralLink.startsWith("/")
+        ? `${baseUrl}${rawReferralLink}`
+        : rawReferralLink;
 
   const { data: drivers } = await supabase
     .from("profiles")
