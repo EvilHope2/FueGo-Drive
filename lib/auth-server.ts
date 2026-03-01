@@ -20,7 +20,7 @@ export async function requireProfile(expectedRole?: Role) {
     const inferredRole: Role =
       metadataRole === "driver" || metadataRole === "admin" || metadataRole === "affiliate" ? metadataRole : "customer";
 
-    await supabase.from("profiles").insert({
+    const payload = {
       id: user.id,
       role: inferredRole,
       full_name: (user.user_metadata?.full_name as string | undefined) ?? user.email?.split("@")[0] ?? "Usuario",
@@ -33,7 +33,18 @@ export async function requireProfile(expectedRole?: Role) {
       vehicle_plate: (user.user_metadata?.vehicle_plate as string | undefined) ?? null,
       vehicle_brand: (user.user_metadata?.vehicle_brand as string | undefined) ?? null,
       vehicle_model_year: (user.user_metadata?.vehicle_model_year as string | undefined) ?? null,
-    });
+    };
+
+    const { error: insertError } = await supabase.from("profiles").insert(payload);
+    if (insertError) {
+      await supabase.from("profiles").insert({
+        id: user.id,
+        role: inferredRole === "affiliate" ? "customer" : inferredRole,
+        full_name: payload.full_name,
+        email: payload.email,
+        phone: payload.phone,
+      });
+    }
 
     const { data: createdProfile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     profile = createdProfile;

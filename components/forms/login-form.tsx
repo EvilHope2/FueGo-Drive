@@ -63,7 +63,7 @@ export function LoginForm() {
         metadataRole === "driver" || metadataRole === "admin" || metadataRole === "affiliate" ? metadataRole : "customer";
 
       if (!profile) {
-        await supabase.from("profiles").insert({
+        const payload = {
           id: data.user.id,
           role: inferredRole,
           full_name: (data.user.user_metadata?.full_name as string | undefined) ?? data.user.email?.split("@")[0] ?? "Usuario",
@@ -76,7 +76,17 @@ export function LoginForm() {
           vehicle_plate: (data.user.user_metadata?.vehicle_plate as string | undefined) ?? null,
           vehicle_brand: (data.user.user_metadata?.vehicle_brand as string | undefined) ?? null,
           vehicle_model_year: (data.user.user_metadata?.vehicle_model_year as string | undefined) ?? null,
-        });
+        };
+        const { error: insertError } = await supabase.from("profiles").insert(payload);
+        if (insertError) {
+          await supabase.from("profiles").insert({
+            id: data.user.id,
+            role: inferredRole === "affiliate" ? "customer" : inferredRole,
+            full_name: payload.full_name,
+            email: payload.email,
+            phone: payload.phone,
+          });
+        }
       }
 
       const role = (profile?.role as Role | undefined) ?? inferredRole;
