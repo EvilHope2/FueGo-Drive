@@ -30,7 +30,8 @@ export function AdminDashboard({ initialRides }: Props) {
     );
 
     const totalBilled = rides.reduce((sum, ride) => sum + Number(ride.estimated_price ?? 0), 0);
-    const totalCommission = rides.reduce((sum, ride) => sum + Number(ride.commission_amount ?? 0), 0);
+    const totalCommission = rides.reduce((sum, ride) => sum + Number(ride.admin_commission_amount ?? ride.commission_amount ?? 0), 0);
+    const totalAffiliate = rides.reduce((sum, ride) => sum + Number(ride.affiliate_commission_amount ?? 0), 0);
     const totalDriverPay = rides.reduce((sum, ride) => sum + Number(ride.driver_earnings ?? 0), 0);
 
     return {
@@ -38,6 +39,7 @@ export function AdminDashboard({ initialRides }: Props) {
       finalizedWeek: finalizedWeek.length,
       totalBilled,
       totalCommission,
+      totalAffiliate,
       totalDriverPay,
     };
   }, [rides]);
@@ -54,11 +56,12 @@ export function AdminDashboard({ initialRides }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <MoneyCard label="Viajes totales" value={String(metrics.totalTrips)} />
         <MoneyCard label="Finalizados (7 días)" value={String(metrics.finalizedWeek)} />
         <MoneyCard label="Total facturado" value={formatCurrencyARS(metrics.totalBilled)} />
         <MoneyCard label="Comisión FueGo" value={formatCurrencyARS(metrics.totalCommission)} />
+        <MoneyCard label="Comisión afiliados" value={formatCurrencyARS(metrics.totalAffiliate)} />
         <MoneyCard label="A pagar conductores" value={formatCurrencyARS(metrics.totalDriverPay)} />
       </div>
 
@@ -75,6 +78,12 @@ export function AdminDashboard({ initialRides }: Props) {
             className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
           >
             Ir a wallets
+          </Link>
+          <Link
+            href="/admin/afiliados"
+            className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+          >
+            Ir a afiliados
           </Link>
         </div>
       </div>
@@ -114,7 +123,9 @@ export function AdminDashboard({ initialRides }: Props) {
                 <p>Cliente: {ride.customer_name}</p>
                 <p>Conductor: {ride.driver_profile?.full_name ?? "Sin asignar"}</p>
                 <p>Estimado: {formatCurrencyARS(ride.estimated_price ?? null)}</p>
-                <p>Comisión: {formatCurrencyARS(ride.commission_amount ?? null)}</p>
+                <p>Afiliado: {ride.affiliate_profile?.full_name ?? "Sin afiliado"}</p>
+                <p>Comisión afiliado: {formatCurrencyARS(ride.affiliate_commission_amount ?? 0)}</p>
+                <p>Comisión FueGo: {formatCurrencyARS(ride.admin_commission_amount ?? ride.commission_amount ?? null)}</p>
                 <p>Ganancia conductor: {formatCurrencyARS(ride.driver_earnings ?? null)}</p>
                 <div className="flex items-center gap-2">
                   <p>Método de pago:</p>

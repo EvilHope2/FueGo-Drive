@@ -23,6 +23,7 @@ export const ROLE_PATHS = {
   customer: "/app",
   driver: "/driver",
   admin: "/admin",
+  affiliate: "/affiliate",
 } as const;
 
 export const WHATSAPP_MESSAGE = "Tu FueGo llego";

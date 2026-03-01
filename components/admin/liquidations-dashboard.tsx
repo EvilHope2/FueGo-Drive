@@ -28,7 +28,7 @@ export function LiquidationsDashboard({ initialRides, driverNames }: Props) {
     const totals = weekFinalized.reduce(
       (acc, ride) => {
         acc.totalBilled += Number(ride.estimated_price ?? 0);
-        acc.totalCommission += Number(ride.commission_amount ?? 0);
+        acc.totalCommission += Number(ride.admin_commission_amount ?? ride.commission_amount ?? 0);
         acc.totalDriver += Number(ride.driver_earnings ?? 0);
         if (!ride.is_settled) acc.pending += 1;
         return acc;

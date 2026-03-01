@@ -8,7 +8,7 @@ export default async function AdminPage() {
 
   const { data: rides } = await supabase
     .from("rides")
-    .select("*,driver_profile:profiles!rides_driver_id_fkey(full_name,phone)")
+    .select("*,driver_profile:profiles!rides_driver_id_fkey(full_name,phone),affiliate_profile:profiles!rides_affiliate_id_fkey(full_name,affiliate_code)")
     .order("created_at", { ascending: false });
 
   return (

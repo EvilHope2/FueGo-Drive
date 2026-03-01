@@ -60,7 +60,7 @@ export function LoginForm() {
 
       const metadataRole = data.user.user_metadata?.role;
       const inferredRole: Role =
-        metadataRole === "driver" || metadataRole === "admin" ? metadataRole : "customer";
+        metadataRole === "driver" || metadataRole === "admin" || metadataRole === "affiliate" ? metadataRole : "customer";
 
       if (!profile) {
         await supabase.from("profiles").insert({
@@ -69,6 +69,10 @@ export function LoginForm() {
           full_name: (data.user.user_metadata?.full_name as string | undefined) ?? data.user.email?.split("@")[0] ?? "Usuario",
           email: data.user.email ?? null,
           phone: (data.user.user_metadata?.phone as string | undefined) ?? "",
+          affiliate_code: (data.user.user_metadata?.affiliate_code as string | undefined) ?? null,
+          affiliate_referral_link: (data.user.user_metadata?.affiliate_referral_link as string | undefined) ?? null,
+          referred_by_affiliate_id: (data.user.user_metadata?.referred_by_affiliate_id as string | undefined) ?? null,
+          referred_by_affiliate_code: (data.user.user_metadata?.referred_by_affiliate_code as string | undefined) ?? null,
           vehicle_plate: (data.user.user_metadata?.vehicle_plate as string | undefined) ?? null,
           vehicle_brand: (data.user.user_metadata?.vehicle_brand as string | undefined) ?? null,
           vehicle_model_year: (data.user.user_metadata?.vehicle_model_year as string | undefined) ?? null,

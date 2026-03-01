@@ -69,14 +69,21 @@ export function calculateEstimatedRidePrice(params: {
   };
 }
 
-export function calculateRideEconomics(price: number, commissionPercent: number) {
-  const commissionAmount = Math.round((price * commissionPercent) / 100);
-  const driverEarnings = Math.round(price - commissionAmount);
+export function calculateRideEconomics(price: number, hasAffiliate: boolean) {
+  const affiliateCommissionPercent = hasAffiliate ? 5 : 0;
+  const adminCommissionPercent = hasAffiliate ? 10 : 15;
+  const affiliateCommissionAmount = Math.round((price * affiliateCommissionPercent) / 100);
+  const adminCommissionAmount = Math.round((price * adminCommissionPercent) / 100);
+  const driverEarnings = Math.round(price - affiliateCommissionAmount - adminCommissionAmount);
 
   return {
-    commissionPercent,
-    commissionAmount,
+    commissionPercent: adminCommissionPercent,
+    commissionAmount: adminCommissionAmount,
     driverEarnings,
+    affiliateCommissionPercent,
+    affiliateCommissionAmount,
+    adminCommissionPercent,
+    adminCommissionAmount,
   };
 }
 

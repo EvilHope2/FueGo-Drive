@@ -60,7 +60,7 @@ export function DriverSettlementTable({ rides, driverNames, onMarkSettled }: Pro
       if (!ride.driver_id) return;
       const current = map.get(ride.driver_id);
       const billed = Number(ride.estimated_price ?? 0);
-      const commission = Number(ride.commission_amount ?? 0);
+      const commission = Number(ride.admin_commission_amount ?? ride.commission_amount ?? 0);
       const earnings = Number(ride.driver_earnings ?? 0);
 
       if (!current) {

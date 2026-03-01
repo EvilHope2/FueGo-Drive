@@ -36,7 +36,6 @@ type Props = {
   initialRides: Ride[];
   basePrices: ZoneBasePrice[];
   surcharges: NeighborhoodSurcharge[];
-  defaultCommissionPercent: number;
 };
 
 export function CustomerDashboard({
@@ -44,7 +43,6 @@ export function CustomerDashboard({
   initialRides,
   basePrices,
   surcharges,
-  defaultCommissionPercent,
 }: Props) {
   const [rides, setRides] = useState(initialRides);
   const [loading, setLoading] = useState(false);
@@ -99,7 +97,7 @@ export function CustomerDashboard({
       return;
     }
 
-    const economics = calculateRideEconomics(currentEstimate.estimatedPrice, defaultCommissionPercent);
+    const economics = calculateRideEconomics(currentEstimate.estimatedPrice, false);
     const supabase = createClient();
 
     await supabase
@@ -120,9 +118,14 @@ export function CustomerDashboard({
         to_zone: currentEstimate.toZone,
         to_neighborhood: values.toNeighborhood,
         estimated_price: currentEstimate.estimatedPrice,
-        commission_percent: economics.commissionPercent,
-        commission_amount: economics.commissionAmount,
+        affiliate_commission_percent: economics.affiliateCommissionPercent,
+        affiliate_commission_amount: economics.affiliateCommissionAmount,
+        admin_commission_percent: economics.adminCommissionPercent,
+        admin_commission_amount: economics.adminCommissionAmount,
+        commission_percent: economics.adminCommissionPercent,
+        commission_amount: economics.adminCommissionAmount,
         driver_earnings: economics.driverEarnings,
+        affiliate_id: null,
         customer_name: values.customerName,
         customer_phone: values.customerPhone,
         payment_method: values.paymentMethod as Ride["payment_method"],
