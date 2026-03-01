@@ -91,6 +91,15 @@ export function DriverDashboard({
     router.push(`/driver/viaje/${accepted.id}`);
   };
 
+  const copyCommissionAlias = async () => {
+    try {
+      await navigator.clipboard.writeText(commissionAlias);
+      toast.success("Alias copiado.");
+    } catch {
+      toast.error("No se pudo copiar el alias.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {blockedByDebt ? <DebtSuspensionAlert balance={walletBalance} /> : null}
@@ -224,12 +233,3 @@ export function DriverDashboard({
     </div>
   );
 }
-
-  const copyCommissionAlias = async () => {
-    try {
-      await navigator.clipboard.writeText(commissionAlias);
-      toast.success("Alias copiado.");
-    } catch {
-      toast.error("No se pudo copiar el alias.");
-    }
-  };
