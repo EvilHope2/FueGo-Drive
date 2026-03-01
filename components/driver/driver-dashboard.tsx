@@ -14,6 +14,7 @@ import { DebtSuspensionAlert } from "@/components/wallet/debt-suspension-alert";
 import { WalletSummaryCard } from "@/components/wallet/wallet-summary-card";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrencyARS, formatDateTime } from "@/lib/utils";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
 import type { Profile, Ride } from "@/lib/types";
 import { shouldSuspendDriver } from "@/lib/wallet";
 
@@ -46,6 +47,9 @@ export function DriverDashboard({
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const blockedByDebt = isSuspended || shouldSuspendDriver(walletBalance, walletLimitNegative);
   const commissionAlias = "Fuegodriver";
+  const supportPhone = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "";
+  const paidCommissionMessage = "ya pague mi comision de FueGo te adjunto el comprobante de pago";
+  const paidCommissionHref = buildWhatsAppLink(supportPhone, paidCommissionMessage);
 
   const reloadAvailable = async () => {
     const supabase = createClient();
@@ -114,6 +118,14 @@ export function DriverDashboard({
             Pagar comision
           </button>
           <p className="mt-2 text-xs text-slate-600">Alias: {commissionAlias} | Titular: Nahuel David Ramos</p>
+          <a
+            href={paidCommissionHref}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex w-full justify-center rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          >
+            Avisar pago de comision
+          </a>
         </WalletSummaryCard>
         <WalletSummaryCard
           title="Pagos registrados"
