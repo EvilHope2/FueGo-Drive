@@ -7,6 +7,7 @@ import type { AffiliateEarning } from "@/lib/types";
 export default async function AffiliatePage() {
   const { supabase, profile } = await requireProfile("affiliate");
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const supportPhone = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "";
   const baseUrl = siteUrl.replace(/\/$/, "");
 
   const affiliateCode = profile.affiliate_code ?? "SIN-CODIGO";
@@ -60,6 +61,7 @@ export default async function AffiliatePage() {
         referralLink={referralLink}
         drivers={driverRows}
         earnings={(earnings ?? []) as AffiliateEarning[]}
+        supportPhone={supportPhone}
       />
     </AppShell>
   );

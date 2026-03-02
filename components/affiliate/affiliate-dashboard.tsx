@@ -1,5 +1,6 @@
 "use client";
 
+import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { formatDateTime, formatCurrencyARS } from "@/lib/utils";
 import type { AffiliateEarning, Profile } from "@/lib/types";
 
@@ -13,11 +14,14 @@ type Props = {
   referralLink: string;
   drivers: DriverRow[];
   earnings: AffiliateEarning[];
+  supportPhone: string;
 };
 
-export function AffiliateDashboard({ affiliateCode, referralLink, drivers, earnings }: Props) {
+export function AffiliateDashboard({ affiliateCode, referralLink, drivers, earnings, supportPhone }: Props) {
   const totalGenerated = earnings.reduce((sum, item) => sum + Number(item.affiliate_commission_amount ?? 0), 0);
   const totalRides = earnings.length;
+  const withdrawMessage = `Buenas, quiero retirar mis ganancias de afiliado en FueGo. Codigo: ${affiliateCode}. Total a retirar: ${formatCurrencyARS(totalGenerated)}.`;
+  const withdrawHref = buildWhatsAppLink(supportPhone, withdrawMessage);
 
   return (
     <div className="space-y-6">
@@ -43,6 +47,14 @@ export function AffiliateDashboard({ affiliateCode, referralLink, drivers, earni
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">Link de registro</h2>
         <p className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">{referralLink}</p>
+        <a
+          href={withdrawHref}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+        >
+          Retirar comision
+        </a>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -87,4 +99,3 @@ export function AffiliateDashboard({ affiliateCode, referralLink, drivers, earni
     </div>
   );
 }
-
