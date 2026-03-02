@@ -7,6 +7,8 @@ export type AffiliatePayoutStatus = "pending" | "paid";
 export type Profile = {
   id: string;
   role: Role;
+  is_driver?: boolean;
+  is_affiliate?: boolean;
   full_name: string | null;
   phone: string | null;
   email?: string | null;

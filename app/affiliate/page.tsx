@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/common/app-shell";
+import { PanelRoleSwitcher } from "@/components/common/panel-role-switcher";
 import { AffiliateDashboard } from "@/components/affiliate/affiliate-dashboard";
 import { buildAffiliateReferralLink } from "@/lib/affiliate";
 import { requireProfile } from "@/lib/auth-server";
@@ -11,6 +12,8 @@ export default async function AffiliatePage() {
   const baseUrl = siteUrl.replace(/\/$/, "");
 
   const affiliateCode = profile.affiliate_code ?? "SIN-CODIGO";
+  const canAccessDriver = profile.role === "driver" || profile.is_driver === true;
+  const canAccessAffiliate = profile.role === "affiliate" || profile.is_affiliate === true;
   const rawReferralLink =
     profile.affiliate_referral_link ?? (affiliateCode !== "SIN-CODIGO" ? buildAffiliateReferralLink(siteUrl, affiliateCode) : "-");
   const referralLink =
@@ -56,6 +59,7 @@ export default async function AffiliatePage() {
 
   return (
     <AppShell title="Panel afiliado" subtitle="Seguimiento de conductores referidos y ganancias." roleLabel="Afiliado">
+      <PanelRoleSwitcher currentPanel="affiliate" canAccessDriver={canAccessDriver} canAccessAffiliate={canAccessAffiliate} />
       <AffiliateDashboard
         affiliateCode={affiliateCode}
         referralLink={referralLink}

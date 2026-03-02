@@ -3,6 +3,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile, Role } from "@/lib/types";
 
+function hasRoleAccess(profile: Profile, role: Role) {
+  if (role === "driver") return profile.role === "driver" || profile.is_driver === true;
+  if (role === "affiliate") return profile.role === "affiliate" || profile.is_affiliate === true;
+  return profile.role === role;
+}
+
 export async function requireProfile(expectedRole?: Role) {
   const supabase = await createClient();
   const {
@@ -39,9 +45,8 @@ export async function requireProfile(expectedRole?: Role) {
     if (insertError) {
       await supabase.from("profiles").insert({
         id: user.id,
-        role: inferredRole === "affiliate" ? "customer" : inferredRole,
+        role: inferredRole,
         full_name: payload.full_name,
-        email: payload.email,
         phone: payload.phone,
       });
     }
@@ -56,11 +61,12 @@ export async function requireProfile(expectedRole?: Role) {
 
   const typedProfile = profile as Profile;
 
-  if (expectedRole && typedProfile.role !== expectedRole) {
-    if (typedProfile.role === "customer") redirect("/app");
-    if (typedProfile.role === "driver") redirect("/driver");
-    if (typedProfile.role === "admin") redirect("/admin");
-    if (typedProfile.role === "affiliate") redirect("/affiliate");
+  if (expectedRole && !hasRoleAccess(typedProfile, expectedRole)) {
+    if (hasRoleAccess(typedProfile, "admin")) redirect("/admin");
+    if (hasRoleAccess(typedProfile, "driver")) redirect("/driver");
+    if (hasRoleAccess(typedProfile, "affiliate")) redirect("/affiliate");
+    if (hasRoleAccess(typedProfile, "customer")) redirect("/app");
+    redirect("/login");
   }
 
   return { supabase, profile: typedProfile };

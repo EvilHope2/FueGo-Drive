@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/common/app-shell";
+import { PanelRoleSwitcher } from "@/components/common/panel-role-switcher";
 import { DriverDashboard } from "@/components/driver/driver-dashboard";
 import { requireProfile } from "@/lib/auth-server";
 import type { DriverWalletTransaction, Profile, Ride } from "@/lib/types";
@@ -42,9 +43,12 @@ export default async function DriverPage() {
   const latestMovementAt = walletTx[0]?.created_at ?? null;
   const walletLimitNegative = Number(profile.wallet_limit_negative ?? -20000);
   const isSuspended = profile.driver_account_status === "suspended_debt";
+  const canAccessDriver = profile.role === "driver" || profile.is_driver === true;
+  const canAccessAffiliate = profile.role === "affiliate" || profile.is_affiliate === true;
 
   return (
     <AppShell title="Panel conductor" subtitle="Acepta viajes y actualiza estados del servicio." roleLabel="Conductor">
+      <PanelRoleSwitcher currentPanel="driver" canAccessDriver={canAccessDriver} canAccessAffiliate={canAccessAffiliate} />
       <DriverDashboard
         driverId={profile.id}
         initialAvailable={(availableRides ?? []) as Ride[]}
