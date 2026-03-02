@@ -11,13 +11,13 @@ export default async function AdminAffiliatesPage() {
   const { data: affiliates } = await supabase
     .from("profiles")
     .select("id,full_name,affiliate_code")
-    .eq("role", "affiliate")
+    .or("role.eq.affiliate,is_affiliate.eq.true")
     .order("created_at", { ascending: false });
 
   const { data: drivers } = await supabase
     .from("profiles")
     .select("id,referred_by_affiliate_id")
-    .eq("role", "driver");
+    .or("role.eq.driver,is_driver.eq.true");
 
   const { data: earnings } = await supabase
     .from("affiliate_earnings")
