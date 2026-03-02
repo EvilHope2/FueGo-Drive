@@ -15,6 +15,7 @@ Crear `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SUPPORT_WHATSAPP=549...
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` no se usa en cliente.
@@ -29,6 +30,32 @@ npm run dev
 1. Importar repo.
 2. Cargar env vars.
 3. Deploy.
+
+## PWA instalable
+FueGo está preparado como PWA instalable en Android/Chrome.
+
+- Manifest: `app/manifest.ts`
+- Service worker: `public/sw.js`
+- Registro del service worker + prompt de instalación: `components/pwa/pwa-provider.tsx`
+- Íconos: `public/icons/icon-192.png`, `public/icons/icon-512.png`, `public/icons/icon-512-maskable.png`
+
+### Probar instalación en Android
+1. Deploy en Vercel (HTTPS).
+2. Abrir la app en Chrome Android.
+3. Esperar el botón `Instalar FueGo` o usar menú `Agregar a pantalla principal`.
+4. Abrir desde el ícono instalado (modo standalone).
+
+### Cambiar íconos
+Reemplazar los archivos en `public/icons/` manteniendo los nombres:
+- `icon-192.png`
+- `icon-512.png`
+- `icon-512-maskable.png`
+
+### Limpiar cache del service worker
+En Chrome:
+1. Mantener presionado ícono de la app e info del sitio, o abrir en navegador.
+2. Borrar datos del sitio.
+3. Recargar y reinstalar.
 
 ## Configurar Supabase
 1. Abrir SQL Editor.
@@ -83,6 +110,7 @@ where from_zone = 'Centro y aledaños' and to_zone = 'Norte y otras áreas';
 Públicas:
 - `/`
 - `/login`
+- `/registro-afiliado` (ruta oculta)
 - `/registro-cliente`
 - `/registro-conductor`
 
@@ -92,6 +120,8 @@ Privadas:
 - `/driver`
 - `/driver/viaje/[id]`
 - `/driver/wallet`
+- `/affiliate`
 - `/admin`
 - `/admin/liquidaciones`
 - `/admin/wallets`
+- `/admin/afiliados`

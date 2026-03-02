@@ -46,6 +46,7 @@ export default async function DriverPage() {
   return (
     <AppShell title="Panel conductor" subtitle="Acepta viajes y actualiza estados del servicio." roleLabel="Conductor">
       <DriverDashboard
+        driverId={profile.id}
         initialAvailable={(availableRides ?? []) as Ride[]}
         initialActive={(activeRides ?? []) as Ride[]}
         walletBalance={balance}

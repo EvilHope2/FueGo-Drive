@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/common/empty-state";
@@ -10,6 +10,7 @@ import { DriverVehicleCard } from "@/components/common/driver-vehicle-card";
 import { PaymentMethodBadge } from "@/components/common/payment-method-badge";
 import { RidePriceSummary } from "@/components/common/ride-price-summary";
 import { StatusBadge } from "@/components/common/status-badge";
+import { DriverTutorialCard } from "@/components/driver/driver-tutorial-card";
 import { DebtSuspensionAlert } from "@/components/wallet/debt-suspension-alert";
 import { WalletSummaryCard } from "@/components/wallet/wallet-summary-card";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +20,7 @@ import type { Profile, Ride } from "@/lib/types";
 import { shouldSuspendDriver } from "@/lib/wallet";
 
 type Props = {
+  driverId: string;
   initialAvailable: Ride[];
   initialActive: Ride[];
   walletBalance: number;
@@ -31,6 +33,7 @@ type Props = {
 };
 
 export function DriverDashboard({
+  driverId,
   initialAvailable,
   initialActive,
   walletBalance,
@@ -45,11 +48,104 @@ export function DriverDashboard({
   const [availableRides, setAvailableRides] = useState(initialAvailable);
   const [activeRides, setActiveRides] = useState(initialActive);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [newRideIds, setNewRideIds] = useState<Set<string>>(new Set());
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const blockedByDebt = isSuspended || shouldSuspendDriver(walletBalance, walletLimitNegative);
   const commissionAlias = "Fuegodriver";
   const supportPhone = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "";
   const paidCommissionMessage = "ya pague mi comision de FueGo te adjunto el comprobante de pago";
   const paidCommissionHref = buildWhatsAppLink(supportPhone, paidCommissionMessage);
+  const knownRideIdsRef = useRef<Set<string>>(new Set(initialAvailable.map((ride) => ride.id)));
+
+  useEffect(() => {
+    const onInteract = () => setHasInteracted(true);
+    window.addEventListener("click", onInteract, { once: true });
+    window.addEventListener("touchstart", onInteract, { once: true });
+    return () => {
+      window.removeEventListener("click", onInteract);
+      window.removeEventListener("touchstart", onInteract);
+    };
+  }, []);
+
+  useEffect(() => {
+    const playNewRideSound = () => {
+      if (!soundEnabled || !hasInteracted) return;
+      try {
+        const audioContext = new window.AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+        gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.18, audioContext.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.22);
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.24);
+        void audioContext.close();
+      } catch {
+        // ignore audio errors in restricted browsers
+      }
+    };
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`driver-rides-${driverId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "rides" },
+        (payload) => {
+          const ride = payload.new as Ride;
+          if (ride.status !== "Solicitado" || ride.driver_id) return;
+          if (knownRideIdsRef.current.has(ride.id)) return;
+
+          knownRideIdsRef.current.add(ride.id);
+          setAvailableRides((prev) => [ride, ...prev]);
+          setNewRideIds((prev) => {
+            const next = new Set(prev);
+            next.add(ride.id);
+            return next;
+          });
+          playNewRideSound();
+          toast.success("Nueva solicitud disponible.");
+          setTimeout(() => {
+            setNewRideIds((prev) => {
+              const next = new Set(prev);
+              next.delete(ride.id);
+              return next;
+            });
+          }, 9000);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "rides" },
+        (payload) => {
+          const ride = payload.new as Ride;
+          setAvailableRides((prev) => {
+            const withoutCurrent = prev.filter((item) => item.id !== ride.id);
+            if (ride.status === "Solicitado" && !ride.driver_id) {
+              return [ride, ...withoutCurrent];
+            }
+            return withoutCurrent;
+          });
+
+          if (ride.driver_id === driverId && !["Finalizado", "Cancelado"].includes(ride.status)) {
+            setActiveRides((prev) => [ride, ...prev.filter((item) => item.id !== ride.id)]);
+          }
+          if (ride.driver_id === driverId && ["Finalizado", "Cancelado"].includes(ride.status)) {
+            setActiveRides((prev) => prev.filter((item) => item.id !== ride.id));
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [driverId, hasInteracted, soundEnabled]);
 
   const reloadAvailable = async () => {
     const supabase = createClient();
@@ -106,6 +202,7 @@ export function DriverDashboard({
 
   return (
     <div className="space-y-6">
+      <DriverTutorialCard />
       {blockedByDebt ? <DebtSuspensionAlert balance={walletBalance} /> : null}
       <section className="grid gap-3 md:grid-cols-3">
         <WalletSummaryCard title="Saldo actual" value={walletBalance} />
@@ -131,7 +228,15 @@ export function DriverDashboard({
           title="Pagos registrados"
           value={totalPayments}
           caption={latestMovementAt ? `Último movimiento: ${formatDateTime(latestMovementAt)}` : "Sin movimientos"}
-        />
+        >
+          <button
+            type="button"
+            onClick={() => setSoundEnabled((prev) => !prev)}
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50"
+          >
+            Sonido de alertas: {soundEnabled ? "activado" : "desactivado"}
+          </button>
+        </WalletSummaryCard>
       </section>
       <DriverVehicleCard
         title="Mi vehículo"
@@ -165,7 +270,17 @@ export function DriverDashboard({
               <EmptyState title="Sin viajes solicitados" description="Volvé a revisar en unos segundos." />
             ) : (
               availableRides.map((ride) => (
-                <article key={ride.id} className="rounded-xl border border-slate-200 p-4">
+                <article
+                  key={ride.id}
+                  className={`rounded-xl border p-4 transition ${
+                    newRideIds.has(ride.id) ? "border-indigo-300 bg-indigo-50/50" : "border-slate-200"
+                  }`}
+                >
+                  {newRideIds.has(ride.id) ? (
+                    <span className="mb-2 inline-flex rounded-full border border-indigo-200 bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                      Nuevo
+                    </span>
+                  ) : null}
                   <p className="text-sm font-semibold text-slate-900">
                     {ride.from_neighborhood ?? "-"} {"->"} {ride.to_neighborhood ?? "-"}
                   </p>
