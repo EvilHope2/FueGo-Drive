@@ -4,6 +4,7 @@ import { DebtSuspensionAlert } from "@/components/wallet/debt-suspension-alert";
 import { WalletBalanceBadge } from "@/components/wallet/wallet-balance-badge";
 import { WalletSummaryCard } from "@/components/wallet/wallet-summary-card";
 import { WalletTransactionsTable } from "@/components/wallet/wallet-transactions-table";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
 import type { DriverWalletTransaction } from "@/lib/types";
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
   lastTransaction: DriverWalletTransaction | null;
   transactions: DriverWalletTransaction[];
   isSuspended: boolean;
+  supportPhone: string;
 };
 
 export function DriverWalletPage({
@@ -22,7 +24,12 @@ export function DriverWalletPage({
   lastTransaction,
   transactions,
   isSuspended,
+  supportPhone,
 }: Props) {
+  const commissionAlias = "Fuegodriver";
+  const paidCommissionMessage = "ya pague mi comision de FueGo te adjunto el comprobante de pago";
+  const paidCommissionHref = buildWhatsAppLink(supportPhone, paidCommissionMessage);
+
   return (
     <div className="space-y-6">
       <Link href="/driver" className="inline-flex text-sm font-medium text-indigo-700 hover:text-indigo-800">
@@ -47,7 +54,17 @@ export function DriverWalletPage({
 
       <div className="grid gap-3 md:grid-cols-3">
         <WalletSummaryCard title="Saldo actual" value={balance} />
-        <WalletSummaryCard title="Comisiones pendientes" value={pendingCommission} />
+        <WalletSummaryCard title="Comisiones pendientes" value={pendingCommission}>
+          <p className="mt-2 text-xs text-slate-600">Alias: {commissionAlias} | Titular: Nahuel David Ramos</p>
+          <a
+            href={paidCommissionHref}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex w-full justify-center rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          >
+            Avisar pago de comisión
+          </a>
+        </WalletSummaryCard>
         <WalletSummaryCard title="Pagos registrados" value={totalPayments} />
       </div>
 

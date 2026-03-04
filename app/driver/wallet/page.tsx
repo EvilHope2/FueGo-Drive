@@ -6,6 +6,7 @@ import { calculateDriverWalletBalance } from "@/lib/wallet";
 
 export default async function DriverWalletRoute() {
   const { supabase, profile } = await requireProfile("driver");
+  const supportPhone = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "";
 
   const { data: transactions } = await supabase
     .from("driver_wallet_transactions")
@@ -37,6 +38,7 @@ export default async function DriverWalletRoute() {
         lastTransaction={tx[0] ?? null}
         transactions={tx}
         isSuspended={profileWithStatus.driver_account_status === "suspended_debt"}
+        supportPhone={supportPhone}
       />
     </AppShell>
   );

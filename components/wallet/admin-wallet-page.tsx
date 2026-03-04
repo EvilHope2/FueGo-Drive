@@ -78,6 +78,42 @@ export function AdminWalletPage({ drivers, transactions }: Props) {
     router.refresh();
   };
 
+  const settlePendingCommission = async () => {
+    if (!selectedDriver) {
+      toast.error("Seleccioná un conductor.");
+      return;
+    }
+
+    const pending = Math.abs(Math.min(0, balance));
+    if (pending <= 0) {
+      toast.error("No hay comisión pendiente para descontar.");
+      return;
+    }
+
+    setLoading(true);
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const { error } = await supabase.from("driver_wallet_transactions").insert({
+      driver_id: selectedDriver,
+      type: "payment",
+      amount: pending,
+      description: "Pago registrado (comisión pendiente)",
+      payment_method: "manual",
+      notes: "Descuento de comisión pendiente desde admin",
+      created_by: authData.user?.id ?? null,
+    });
+
+    if (error) {
+      toast.error("No se pudo descontar la comisión pendiente.");
+      setLoading(false);
+      return;
+    }
+
+    toast.success("Comisión pendiente descontada.");
+    setLoading(false);
+    router.refresh();
+  };
+
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -144,6 +180,13 @@ export function AdminWalletPage({ drivers, transactions }: Props) {
             className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
           >
             Registrar pago
+          </button>
+          <button
+            onClick={settlePendingCommission}
+            disabled={loading || Math.abs(Math.min(0, balance)) <= 0}
+            className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:opacity-60"
+          >
+            Descontar comisión pendiente
           </button>
           <button
             onClick={() => submitTransaction("adjustment")}
