@@ -81,9 +81,8 @@ export function LoginForm() {
         if (insertError) {
           await supabase.from("profiles").insert({
             id: data.user.id,
-            role: inferredRole === "affiliate" ? "customer" : inferredRole,
+            role: inferredRole,
             full_name: payload.full_name,
-            email: payload.email,
             phone: payload.phone,
           });
         }
