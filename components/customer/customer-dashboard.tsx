@@ -141,6 +141,14 @@ export function CustomerDashboard({
       return;
     }
 
+    await fetch("/api/push/new-ride", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rideId: data.id }),
+    }).catch(() => {
+      // Notifications are complementary; do not block ride creation.
+    });
+
     setRides((prev) => [data as Ride, ...prev]);
     toast.success("Viaje solicitado con éxito.");
     reset({

@@ -11,6 +11,7 @@ import { PaymentMethodBadge } from "@/components/common/payment-method-badge";
 import { RidePriceSummary } from "@/components/common/ride-price-summary";
 import { StatusBadge } from "@/components/common/status-badge";
 import { DriverTutorialCard } from "@/components/driver/driver-tutorial-card";
+import { PushNotificationBanner } from "@/components/driver/push-notification-banner";
 import { DebtSuspensionAlert } from "@/components/wallet/debt-suspension-alert";
 import { WalletSummaryCard } from "@/components/wallet/wallet-summary-card";
 import { createClient } from "@/lib/supabase/client";
@@ -203,6 +204,7 @@ export function DriverDashboard({
   return (
     <div className="space-y-6">
       <DriverTutorialCard />
+      <PushNotificationBanner />
       {blockedByDebt ? <DebtSuspensionAlert balance={walletBalance} /> : null}
       <section className="grid gap-3 md:grid-cols-3">
         <WalletSummaryCard title="Saldo actual" value={walletBalance} />

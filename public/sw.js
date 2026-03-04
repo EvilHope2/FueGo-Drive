@@ -7,6 +7,42 @@ self.addEventListener("install", (event) => {
   );
 });
 
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  const data = event.data.json();
+  const title = data.title || "Nuevo viaje disponible";
+  const options = {
+    body: data.body || "Hay una nueva solicitud lista para aceptar en FueGo",
+    icon: data.icon || "/icons/icon-192.png",
+    badge: data.badge || "/icons/icon-192.png",
+    data: {
+      url: data.url || "/driver",
+      rideId: data.rideId || null,
+    },
+    vibrate: [120, 40, 120],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/driver";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ("focus" in client && client.url.includes(self.location.origin)) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(targetUrl);
+    }),
+  );
+});
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
@@ -51,4 +87,3 @@ self.addEventListener("fetch", (event) => {
     }),
   );
 });
-

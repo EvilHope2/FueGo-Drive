@@ -16,9 +16,13 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_SUPPORT_WHATSAPP=549...
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:soporte@fuego.app
+SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` no se usa en cliente.
+`SUPABASE_SERVICE_ROLE_KEY` y `VAPID_PRIVATE_KEY` son solo server.
 
 ## Correr local
 ```bash
@@ -56,6 +60,27 @@ En Chrome:
 1. Mantener presionado ícono de la app e info del sitio, o abrir en navegador.
 2. Borrar datos del sitio.
 3. Recargar y reinstalar.
+
+## Notificaciones push (conductores)
+- Activación desde panel conductor: banner `Notificaciones de viajes`.
+- Service worker push/click: `public/sw.js`.
+- API suscripción:
+  - `POST /api/push/subscribe`
+  - `POST /api/push/unsubscribe`
+- Disparo al crear viaje solicitado:
+  - `POST /api/push/new-ride` (se llama al crear ride).
+- Tabla Supabase:
+  - `driver_push_subscriptions`
+  - SQL: `supabase/sql/2026-03-driver-push-notifications.sql`
+
+### Generar claves VAPID
+```bash
+npx web-push generate-vapid-keys
+```
+
+Copiar:
+- `publicKey` -> `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+- `privateKey` -> `VAPID_PRIVATE_KEY`
 
 ## Configurar Supabase
 1. Abrir SQL Editor.
