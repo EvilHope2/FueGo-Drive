@@ -51,8 +51,34 @@ export async function POST(request: Request) {
   }
 
   const userAgent = request.headers.get("user-agent");
-  const { error } = await service.from("driver_push_subscriptions").upsert(
-    {
+  const { data: existing, error: existingError } = await service
+    .from("driver_push_subscriptions")
+    .select("id")
+    .eq("driver_id", user.id)
+    .eq("endpoint", endpoint)
+    .maybeSingle();
+
+  if (existingError) {
+    return NextResponse.json({ error: "LOOKUP_FAILED" }, { status: 500 });
+  }
+
+  if (existing?.id) {
+    const { error: updateError } = await service
+      .from("driver_push_subscriptions")
+      .update({
+        p256dh,
+        auth,
+        user_agent: userAgent,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id);
+
+    if (updateError) {
+      return NextResponse.json({ error: "UPDATE_FAILED" }, { status: 500 });
+    }
+  } else {
+    const { error: insertError } = await service.from("driver_push_subscriptions").insert({
       driver_id: user.id,
       endpoint,
       p256dh,
@@ -60,12 +86,11 @@ export async function POST(request: Request) {
       user_agent: userAgent,
       is_active: true,
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "driver_id,endpoint" },
-  );
+    });
 
-  if (error) {
-    return NextResponse.json({ error: "UPSERT_FAILED" }, { status: 500 });
+    if (insertError) {
+      return NextResponse.json({ error: "INSERT_FAILED" }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });
