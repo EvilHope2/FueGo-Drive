@@ -30,11 +30,7 @@ export default async function DriverPage() {
 
   const walletTx = (walletTransactions ?? []) as Pick<DriverWalletTransaction, "amount" | "created_at">[];
   const balance = Number(calculateDriverWalletBalance(walletTx.map((item) => Number(item.amount ?? 0))) ?? 0);
-  const pendingCommission = Number(
-    walletTx
-      .filter((item) => Number(item.amount ?? 0) < 0)
-      .reduce((sum, item) => sum + Number(item.amount ?? 0), 0),
-  );
+  const pendingCommission = Number(Math.min(0, balance));
   const totalPayments = Number(
     walletTx
       .filter((item) => Number(item.amount ?? 0) > 0)

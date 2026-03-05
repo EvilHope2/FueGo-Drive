@@ -16,11 +16,7 @@ export default async function DriverWalletRoute() {
 
   const tx = (transactions ?? []) as DriverWalletTransaction[];
   const balance = Number(calculateDriverWalletBalance(tx.map((item) => Number(item.amount ?? 0))) ?? 0);
-  const pendingCommission = Number(
-    tx
-      .filter((item) => Number(item.amount ?? 0) < 0)
-      .reduce((sum, item) => sum + Number(item.amount ?? 0), 0),
-  );
+  const pendingCommission = Number(Math.min(0, balance));
   const totalPayments = Number(
     tx
       .filter((item) => Number(item.amount ?? 0) > 0)
