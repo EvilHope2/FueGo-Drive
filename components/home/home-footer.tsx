@@ -14,10 +14,10 @@ export function HomeFooter({ supportHref }: Props) {
         </div>
         <nav className="flex flex-wrap gap-4 text-sm font-medium text-slate-600">
           <Link href="/terminos" className="transition hover:text-slate-900">
-            Terminos
+            Términos y Condiciones
           </Link>
           <Link href="/privacidad" className="transition hover:text-slate-900">
-            Privacidad
+            Política de Privacidad
           </Link>
           <Link href={supportHref} className="transition hover:text-slate-900">
             Soporte

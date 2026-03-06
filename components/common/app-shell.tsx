@@ -34,6 +34,19 @@ export function AppShell({ title, subtitle, roleLabel, children }: Props) {
         </div>
         {children}
       </main>
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4 text-xs text-slate-500 sm:px-6">
+          <p>FueGo - Plataforma de movilidad</p>
+          <div className="flex items-center gap-3">
+            <Link href="/terminos" className="font-medium text-slate-600 hover:text-slate-900">
+              Términos y Condiciones
+            </Link>
+            <Link href="/privacidad" className="font-medium text-slate-600 hover:text-slate-900">
+              Política de Privacidad
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

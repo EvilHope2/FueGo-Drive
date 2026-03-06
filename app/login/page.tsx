@@ -1,3 +1,4 @@
+import { AuthLegalFooter } from "@/components/common/auth-legal-footer";
 import { LoginForm } from "@/components/forms/login-form";
 
 export default function LoginPage() {
@@ -7,6 +8,7 @@ export default function LoginPage() {
         <h1 className="mb-1 text-2xl font-semibold tracking-tight text-slate-900">Ingresar</h1>
         <p className="mb-6 text-sm text-slate-600">Accede con tu cuenta de FueGo.</p>
         <LoginForm />
+        <AuthLegalFooter />
       </section>
     </main>
   );

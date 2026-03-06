@@ -243,6 +243,14 @@ export function RegisterForm({ role, initialAffiliateCode }: Props) {
         {loading ? "Creando..." : "Crear cuenta"}
       </button>
 
+      <p className="text-center text-xs text-slate-500">
+        Al registrarte aceptás los{" "}
+        <Link href="/terminos" className="font-semibold text-indigo-700 hover:text-indigo-800">
+          Términos y Condiciones
+        </Link>
+        .
+      </p>
+
       <p className="text-center text-sm text-slate-600">
         Ya tenes cuenta?{" "}
         <Link href="/login" className="font-medium text-indigo-700 hover:text-indigo-800">
