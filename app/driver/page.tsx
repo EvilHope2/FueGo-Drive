@@ -2,25 +2,11 @@ import { AppShell } from "@/components/common/app-shell";
 import { PanelRoleSwitcher } from "@/components/common/panel-role-switcher";
 import { DriverDashboard } from "@/components/driver/driver-dashboard";
 import { requireProfile } from "@/lib/auth-server";
-import type { DriverWalletTransaction, Profile, Ride } from "@/lib/types";
+import type { DriverWalletTransaction, Profile } from "@/lib/types";
 import { calculateDriverWalletBalance } from "@/lib/wallet";
 
 export default async function DriverPage() {
   const { supabase, profile } = await requireProfile("driver");
-
-  const { data: availableRides } = await supabase
-    .from("rides")
-    .select("*")
-    .is("driver_id", null)
-    .eq("status", "Solicitado")
-    .order("created_at", { ascending: false });
-
-  const { data: activeRides } = await supabase
-    .from("rides")
-    .select("*")
-    .eq("driver_id", profile.id)
-    .not("status", "in", "(Finalizado,Cancelado)")
-    .order("created_at", { ascending: false });
 
   const { data: walletTransactions } = await supabase
     .from("driver_wallet_transactions")
@@ -46,9 +32,6 @@ export default async function DriverPage() {
     <AppShell title="Panel conductor" subtitle="Acepta viajes y actualiza estados del servicio." roleLabel="Conductor">
       <PanelRoleSwitcher currentPanel="driver" canAccessDriver={canAccessDriver} canAccessAffiliate={canAccessAffiliate} />
       <DriverDashboard
-        driverId={profile.id}
-        initialAvailable={(availableRides ?? []) as Ride[]}
-        initialActive={(activeRides ?? []) as Ride[]}
         walletBalance={balance}
         walletLimitNegative={walletLimitNegative}
         isSuspended={isSuspended}
