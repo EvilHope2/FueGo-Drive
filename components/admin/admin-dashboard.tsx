@@ -1,16 +1,17 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { EmptyState } from "@/components/common/empty-state";
 import { MoneyCard } from "@/components/common/money-card";
 import { PaymentMethodBadge } from "@/components/common/payment-method-badge";
 import { SettlementStatusBadge } from "@/components/common/settlement-status-badge";
 import { StatusBadge } from "@/components/common/status-badge";
 import { RIDE_STATUSES } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrencyARS, formatDateTime } from "@/lib/utils";
 import type { Ride } from "@/lib/types";
+import { formatCurrencyARS, formatDateTime } from "@/lib/utils";
 
 type Props = {
   initialRides: Ride[];
@@ -18,16 +19,16 @@ type Props = {
 
 export function AdminDashboard({ initialRides }: Props) {
   const [rides, setRides] = useState(initialRides);
-  const [filter, setFilter] = useState<string>("Todos");
+  const [statusFilter, setStatusFilter] = useState<string>("Todos");
+  const [paymentFilter, setPaymentFilter] = useState<string>("Todos");
+  const [query, setQuery] = useState<string>("");
 
   const metrics = useMemo(() => {
     const now = new Date();
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - 7);
 
-    const finalizedWeek = rides.filter(
-      (ride) => ride.status === "Finalizado" && new Date(ride.created_at) >= weekStart,
-    );
+    const finalizedWeek = rides.filter((ride) => ride.status === "Finalizado" && new Date(ride.created_at) >= weekStart);
 
     const totalBilled = rides.reduce((sum, ride) => sum + Number(ride.estimated_price ?? 0), 0);
     const totalCommission = rides.reduce((sum, ride) => sum + Number(ride.admin_commission_amount ?? ride.commission_amount ?? 0), 0);
@@ -44,6 +45,14 @@ export function AdminDashboard({ initialRides }: Props) {
     };
   }, [rides]);
 
+  const quickMetrics = useMemo(() => {
+    const requested = rides.filter((ride) => ride.status === "Solicitado").length;
+    const inProgress = rides.filter((ride) => ["Aceptado", "En camino", "Llegando", "Afuera"].includes(ride.status)).length;
+    const canceled = rides.filter((ride) => ride.status === "Cancelado").length;
+    const unsettledFinalized = rides.filter((ride) => ride.status === "Finalizado" && !ride.is_settled).length;
+    return { requested, inProgress, canceled, unsettledFinalized };
+  }, [rides]);
+
   const cancelRide = async (id: string) => {
     const supabase = createClient();
     const { data } = await supabase.from("rides").update({ status: "Cancelado" }).eq("id", id).select("*").single();
@@ -52,21 +61,71 @@ export function AdminDashboard({ initialRides }: Props) {
     }
   };
 
-  const visibleRides = rides.filter((ride) => filter === "Todos" || ride.status === filter);
+  const visibleRides = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return rides.filter((ride) => {
+      if (statusFilter !== "Todos" && ride.status !== statusFilter) return false;
+      if (paymentFilter !== "Todos" && ride.payment_method !== paymentFilter) return false;
+      if (!normalizedQuery) return true;
+
+      const searchable = [
+        ride.customer_name,
+        ride.customer_phone,
+        ride.origin_address ?? ride.origin,
+        ride.destination_address ?? ride.destination,
+        ride.from_neighborhood,
+        ride.to_neighborhood,
+        ride.driver_profile?.full_name,
+        ride.affiliate_profile?.full_name,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchable.includes(normalizedQuery);
+    });
+  }, [rides, statusFilter, paymentFilter, query]);
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-        <MoneyCard label="Viajes totales" value={String(metrics.totalTrips)} />
-        <MoneyCard label="Finalizados (7 días)" value={String(metrics.finalizedWeek)} />
-        <MoneyCard label="Total facturado" value={formatCurrencyARS(metrics.totalBilled)} />
-        <MoneyCard label="Comisión FueGo" value={formatCurrencyARS(metrics.totalCommission)} />
-        <MoneyCard label="Comisión afiliados" value={formatCurrencyARS(metrics.totalAffiliate)} />
-        <MoneyCard label="A pagar conductores" value={formatCurrencyARS(metrics.totalDriverPay)} />
-      </div>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Resumen operativo</h2>
+            <p className="mt-1 text-sm text-slate-600">Vision rapida de viajes, comisiones y estado general de la operacion.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <article className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-xs font-medium text-slate-500">Solicitados</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">{quickMetrics.requested}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-xs font-medium text-slate-500">En curso</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">{quickMetrics.inProgress}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-xs font-medium text-slate-500">Cancelados</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">{quickMetrics.canceled}</p>
+            </article>
+            <article className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-xs font-medium text-slate-500">Liquidacion pendiente</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">{quickMetrics.unsettledFinalized}</p>
+            </article>
+          </div>
+        </div>
 
-      <div className="flex justify-end">
-        <div className="flex gap-2">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <MoneyCard label="Viajes totales" value={String(metrics.totalTrips)} />
+          <MoneyCard label="Finalizados (7 dias)" value={String(metrics.finalizedWeek)} />
+          <MoneyCard label="Total facturado" value={formatCurrencyARS(metrics.totalBilled)} />
+          <MoneyCard label="Comision FueGo" value={formatCurrencyARS(metrics.totalCommission)} />
+          <MoneyCard label="Comision afiliados" value={formatCurrencyARS(metrics.totalAffiliate)} />
+          <MoneyCard label="A pagar conductores" value={formatCurrencyARS(metrics.totalDriverPay)} />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-wrap gap-2">
           <Link
             href="/admin/liquidaciones"
             className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
@@ -86,65 +145,96 @@ export function AdminDashboard({ initialRides }: Props) {
             Ir a afiliados
           </Link>
         </div>
-      </div>
+      </section>
 
-      <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-slate-900">Todos los viajes</h2>
+      <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Centro de viajes</h2>
+            <p className="text-sm text-slate-600">Filtra y gestiona viajes activos, finalizados y cancelados.</p>
+          </div>
+          <p className="text-sm text-slate-600">
+            Mostrando <span className="font-semibold text-slate-900">{visibleRides.length}</span> viaje(s)
+          </p>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar cliente, chofer, barrio o direccion"
+            className="rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 xl:col-span-2"
+          />
           <select
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-            className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           >
-            <option>Todos</option>
+            <option value="Todos">Todos los estados</option>
             {RIDE_STATUSES.map((status) => (
-              <option key={status}>{status}</option>
+              <option key={status} value={status}>
+                {status}
+              </option>
             ))}
+          </select>
+          <select
+            value={paymentFilter}
+            onChange={(event) => setPaymentFilter(event.target.value)}
+            className="rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          >
+            <option value="Todos">Todos los pagos</option>
+            <option value="cash">Efectivo</option>
+            <option value="transfer">Transferencia</option>
           </select>
         </div>
 
         <div className="space-y-3">
-          {visibleRides.map((ride) => (
-            <article key={ride.id} className="rounded-xl border border-slate-200 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900">
-                  {ride.from_neighborhood ?? "-"} {"->"} {ride.to_neighborhood ?? "-"}
-                </p>
-                <div className="flex items-center gap-2">
-                  <SettlementStatusBadge settled={Boolean(ride.is_settled)} />
-                  <StatusBadge status={ride.status} />
+          {visibleRides.length === 0 ? (
+            <EmptyState title="No hay viajes para este filtro" description="Proba con otro estado, pago o busqueda." />
+          ) : (
+            visibleRides.map((ride) => (
+              <article key={ride.id} className="rounded-xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {ride.from_neighborhood ?? "-"} {"->"} {ride.to_neighborhood ?? "-"}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-700">
+                      {ride.origin_address ?? ride.origin} {"->"} {ride.destination_address ?? ride.destination}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">{formatDateTime(ride.created_at)}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <SettlementStatusBadge settled={Boolean(ride.is_settled)} />
+                    <StatusBadge status={ride.status} />
+                    <PaymentMethodBadge method={ride.payment_method} />
+                  </div>
                 </div>
-              </div>
-              <p className="mt-1 text-sm text-slate-700">
-                {ride.origin_address ?? ride.origin} {"->"} {ride.destination_address ?? ride.destination}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">{formatDateTime(ride.created_at)}</p>
-              <div className="mt-2 grid gap-1 text-sm text-slate-700 md:grid-cols-2 xl:grid-cols-4">
-                <p>Cliente: {ride.customer_name}</p>
-                <p>Conductor: {ride.driver_profile?.full_name ?? "Sin asignar"}</p>
-                <p>Estimado: {formatCurrencyARS(ride.estimated_price ?? null)}</p>
-                <p>Afiliado: {ride.affiliate_profile?.full_name ?? "Sin afiliado"}</p>
-                <p>Comisión afiliado: {formatCurrencyARS(ride.affiliate_commission_amount ?? 0)}</p>
-                <p>Comisión FueGo: {formatCurrencyARS(ride.admin_commission_amount ?? ride.commission_amount ?? null)}</p>
-                <p>Ganancia conductor: {formatCurrencyARS(ride.driver_earnings ?? null)}</p>
-                <div className="flex items-center gap-2">
-                  <p>Método de pago:</p>
-                  <PaymentMethodBadge method={ride.payment_method} />
+
+                <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2 xl:grid-cols-4">
+                  <p>Cliente: {ride.customer_name}</p>
+                  <p>Conductor: {ride.driver_profile?.full_name ?? "Sin asignar"}</p>
+                  <p>Afiliado: {ride.affiliate_profile?.full_name ?? "Sin afiliado"}</p>
+                  <p>Estimado: {formatCurrencyARS(ride.estimated_price ?? null)}</p>
+                  <p>Comision afiliado: {formatCurrencyARS(ride.affiliate_commission_amount ?? 0)}</p>
+                  <p>Comision FueGo: {formatCurrencyARS(ride.admin_commission_amount ?? ride.commission_amount ?? null)}</p>
+                  <p>Ganancia conductor: {formatCurrencyARS(ride.driver_earnings ?? null)}</p>
+                  <p>Liquidacion: {ride.is_settled ? "Liquidado" : "Pendiente"}</p>
                 </div>
-              </div>
-              {ride.status !== "Finalizado" && ride.status !== "Cancelado" ? (
-                <button
-                  onClick={() => cancelRide(ride.id)}
-                  className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
-                >
-                  Cancelar viaje
-                </button>
-              ) : null}
-            </article>
-          ))}
+
+                {ride.status !== "Finalizado" && ride.status !== "Cancelado" ? (
+                  <button
+                    onClick={() => cancelRide(ride.id)}
+                    className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                  >
+                    Cancelar viaje
+                  </button>
+                ) : null}
+              </article>
+            ))
+          )}
         </div>
       </section>
     </div>
   );
 }
-
