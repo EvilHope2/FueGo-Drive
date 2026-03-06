@@ -51,6 +51,26 @@ export function DriverDashboard({
     <div className="space-y-6">
       <DriverTutorialCard />
       <PushNotificationBanner />
+      <div className="flex flex-wrap justify-end gap-2">
+        <Link
+          href="/driver/viajes-activos"
+          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+        >
+          Viajes activos
+        </Link>
+        <Link
+          href="/driver/perfil"
+          className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+        >
+          Mi perfil
+        </Link>
+        <Link
+          href="/driver/wallet"
+          className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+        >
+          Ver wallet
+        </Link>
+      </div>
       {blockedByDebt ? <DebtSuspensionAlert balance={walletBalance} /> : null}
 
       <section className="grid gap-3 md:grid-cols-3">
@@ -88,27 +108,6 @@ export function DriverDashboard({
         vehicleBrand={profile.vehicle_brand}
         vehicleModelYear={profile.vehicle_model_year}
       />
-
-      <div className="flex flex-wrap justify-end gap-2">
-        <Link
-          href="/driver/viajes-activos"
-          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
-        >
-          Viajes activos
-        </Link>
-        <Link
-          href="/driver/perfil"
-          className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
-        >
-          Mi perfil
-        </Link>
-        <Link
-          href="/driver/wallet"
-          className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
-        >
-          Ver wallet
-        </Link>
-      </div>
     </div>
   );
 }
