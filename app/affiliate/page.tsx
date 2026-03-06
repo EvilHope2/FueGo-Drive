@@ -3,7 +3,7 @@ import { PanelRoleSwitcher } from "@/components/common/panel-role-switcher";
 import { AffiliateDashboard } from "@/components/affiliate/affiliate-dashboard";
 import { buildAffiliateReferralLink } from "@/lib/affiliate";
 import { requireProfile } from "@/lib/auth-server";
-import type { AffiliateEarning } from "@/lib/types";
+import type { AffiliateEarning, Ride } from "@/lib/types";
 
 export default async function AffiliatePage() {
   const { supabase, profile } = await requireProfile("affiliate");
@@ -25,8 +25,8 @@ export default async function AffiliatePage() {
 
   const { data: drivers } = await supabase
     .from("profiles")
-    .select("id,full_name,created_at")
-    .eq("role", "driver")
+    .select("id,full_name,created_at,driver_account_status,is_driver")
+    .or("role.eq.driver,is_driver.eq.true")
     .eq("referred_by_affiliate_id", profile.id)
     .order("created_at", { ascending: false });
 
@@ -48,12 +48,46 @@ export default async function AffiliatePage() {
     earningsByDriver.set(row.driver_id, current);
   }
 
-  const driverRows = ((drivers ?? []) as Array<{ id: string; full_name: string | null; created_at: string }>).map((driver) => {
+  const { data: driverRides } = driverIds.length
+    ? await supabase
+        .from("rides")
+        .select("id,driver_id,status,created_at")
+        .in("driver_id", driverIds)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+
+  const ridesByDriver = new Map<string, Ride[]>();
+  for (const row of (driverRides ?? []) as Ride[]) {
+    const current = ridesByDriver.get(row.driver_id ?? "") ?? [];
+    current.push(row);
+    ridesByDriver.set(row.driver_id ?? "", current);
+  }
+
+  const driverRows = (
+    (drivers ?? []) as Array<{
+      id: string;
+      full_name: string | null;
+      created_at: string;
+      driver_account_status: "active" | "suspended_debt" | null;
+    }>
+  ).map((driver) => {
     const summary = earningsByDriver.get(driver.id) ?? { rides: 0, total: 0 };
+    const ridesForDriver = ridesByDriver.get(driver.id) ?? [];
+    const lastRideAt = ridesForDriver[0]?.created_at ?? null;
+    const hasAnyRide = ridesForDriver.length > 0;
+    const status: "suspendido" | "activo" | "sin_viajes" =
+      driver.driver_account_status === "suspended_debt"
+        ? "suspendido"
+        : hasAnyRide
+          ? "activo"
+          : "sin_viajes";
+
     return {
       ...driver,
       total_rides: summary.rides,
       total_generated: summary.total,
+      last_ride_at: lastRideAt,
+      status,
     };
   });
 
