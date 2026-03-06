@@ -10,7 +10,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { DriverVehicleCard } from "@/components/common/driver-vehicle-card";
 import { PaymentMethodBadge } from "@/components/common/payment-method-badge";
 import { WhatsAppFixedButton } from "@/components/common/whatsapp-fixed-button";
-import { WHATSAPP_MESSAGE, type RideStatus } from "@/lib/constants";
+import { NEXT_DRIVER_STATUS, WHATSAPP_MESSAGE, type RideStatus } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateTime } from "@/lib/utils";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
@@ -21,14 +21,6 @@ type Props = {
   initialRide: Ride;
   driverProfile: Profile;
 };
-
-const driverActions: { label: string; status: RideStatus; tone?: "danger" }[] = [
-  { label: "En camino", status: "En camino" },
-  { label: "Llegando", status: "Llegando" },
-  { label: "Afuera", status: "Afuera" },
-  { label: "Finalizar", status: "Finalizado" },
-  { label: "Cancelar", status: "Cancelado", tone: "danger" },
-];
 
 export function DriverRideDetail({ rideId, initialRide, driverProfile }: Props) {
   const [ride, setRide] = useState(initialRide);
@@ -102,6 +94,17 @@ export function DriverRideDetail({ rideId, initialRide, driverProfile }: Props) 
     : prioritizeDestination
       ? "Ahora seguí hacia el destino final"
       : null;
+  const nextStatus = NEXT_DRIVER_STATUS[ride.status] ?? null;
+  const nextLabel =
+    nextStatus === "En camino"
+      ? "Marcar En camino"
+      : nextStatus === "Llegando"
+        ? "Marcar Llegando"
+        : nextStatus === "Afuera"
+          ? "Marcar Afuera"
+          : nextStatus === "Finalizado"
+            ? "Finalizar viaje"
+            : null;
 
   return (
     <div className="space-y-5 pb-24">
@@ -196,21 +199,23 @@ export function DriverRideDetail({ rideId, initialRide, driverProfile }: Props) 
       {!isLocked ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="text-base font-semibold text-slate-900">Actualizar estado</h3>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {driverActions.map((action) => (
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {nextStatus && nextLabel ? (
               <button
-                key={action.status}
-                onClick={() => updateStatus(action.status)}
-                disabled={loadingStatus === action.status || ride.status === action.status}
-                className={`rounded-xl px-3 py-3 text-sm font-semibold transition ${
-                  action.tone === "danger"
-                    ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                    : "bg-indigo-600 text-white hover:bg-indigo-700"
-                } disabled:cursor-not-allowed disabled:opacity-60`}
+                onClick={() => updateStatus(nextStatus)}
+                disabled={loadingStatus === nextStatus}
+                className="rounded-xl bg-indigo-600 px-3 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loadingStatus === action.status ? "Actualizando..." : action.label}
+                {loadingStatus === nextStatus ? "Actualizando..." : nextLabel}
               </button>
-            ))}
+            ) : null}
+            <button
+              onClick={() => updateStatus("Cancelado")}
+              disabled={loadingStatus === "Cancelado"}
+              className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loadingStatus === "Cancelado" ? "Actualizando..." : "Cancelar"}
+            </button>
           </div>
         </section>
       ) : null}

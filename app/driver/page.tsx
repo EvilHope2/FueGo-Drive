@@ -2,7 +2,7 @@ import { AppShell } from "@/components/common/app-shell";
 import { PanelRoleSwitcher } from "@/components/common/panel-role-switcher";
 import { DriverDashboard } from "@/components/driver/driver-dashboard";
 import { requireProfile } from "@/lib/auth-server";
-import type { DriverWalletTransaction, Profile } from "@/lib/types";
+import type { DriverWalletTransaction, Profile, Ride } from "@/lib/types";
 import { calculateDriverWalletBalance } from "@/lib/wallet";
 
 export default async function DriverPage() {
@@ -13,6 +13,22 @@ export default async function DriverPage() {
     .select("amount,created_at")
     .eq("driver_id", profile.id)
     .order("created_at", { ascending: false });
+
+  const { data: activeRides } = await supabase
+    .from("rides")
+    .select("*")
+    .eq("driver_id", profile.id)
+    .not("status", "in", "(Finalizado,Cancelado)")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  const { data: recentRides } = await supabase
+    .from("rides")
+    .select("*")
+    .eq("driver_id", profile.id)
+    .in("status", ["Finalizado", "Cancelado"])
+    .order("created_at", { ascending: false })
+    .limit(8);
 
   const walletTx = (walletTransactions ?? []) as Pick<DriverWalletTransaction, "amount" | "created_at">[];
   const balance = Number(calculateDriverWalletBalance(walletTx.map((item) => Number(item.amount ?? 0))) ?? 0);
@@ -38,6 +54,8 @@ export default async function DriverPage() {
         pendingCommission={pendingCommission}
         totalPayments={totalPayments}
         latestMovementAt={latestMovementAt}
+        activeRide={(activeRides?.[0] as Ride | undefined) ?? null}
+        recentRides={(recentRides ?? []) as Ride[]}
         profile={profile as Profile}
       />
     </AppShell>

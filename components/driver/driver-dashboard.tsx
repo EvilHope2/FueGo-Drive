@@ -4,14 +4,15 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { DriverVehicleCard } from "@/components/common/driver-vehicle-card";
+import { StatusBadge } from "@/components/common/status-badge";
 import { DriverTutorialCard } from "@/components/driver/driver-tutorial-card";
 import { PushNotificationBanner } from "@/components/driver/push-notification-banner";
 import { DebtSuspensionAlert } from "@/components/wallet/debt-suspension-alert";
 import { WalletSummaryCard } from "@/components/wallet/wallet-summary-card";
+import type { Profile, Ride } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
-import { buildWhatsAppLink } from "@/lib/whatsapp";
-import type { Profile } from "@/lib/types";
 import { shouldSuspendDriver } from "@/lib/wallet";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 type Props = {
   walletBalance: number;
@@ -20,6 +21,8 @@ type Props = {
   pendingCommission: number;
   totalPayments: number;
   latestMovementAt: string | null;
+  activeRide: Ride | null;
+  recentRides: Ride[];
   profile: Profile;
 };
 
@@ -30,6 +33,8 @@ export function DriverDashboard({
   pendingCommission,
   totalPayments,
   latestMovementAt,
+  activeRide,
+  recentRides,
   profile,
 }: Props) {
   const blockedByDebt = isSuspended || shouldSuspendDriver(walletBalance, walletLimitNegative);
@@ -51,6 +56,7 @@ export function DriverDashboard({
     <div className="space-y-6">
       <DriverTutorialCard />
       <PushNotificationBanner />
+
       <div className="flex flex-wrap justify-end gap-2">
         <Link
           href="/driver/viajes-activos"
@@ -71,6 +77,7 @@ export function DriverDashboard({
           Ver wallet
         </Link>
       </div>
+
       {blockedByDebt ? <DebtSuspensionAlert balance={walletBalance} /> : null}
 
       <section className="grid gap-3 md:grid-cols-3">
@@ -96,12 +103,53 @@ export function DriverDashboard({
         <WalletSummaryCard
           title="Pagos registrados"
           value={totalPayments}
-          caption={latestMovementAt ? `Último movimiento: ${formatDateTime(latestMovementAt)}` : "Sin movimientos"}
+          caption={latestMovementAt ? `Ultimo movimiento: ${formatDateTime(latestMovementAt)}` : "Sin movimientos"}
         />
       </section>
 
+      {activeRide ? (
+        <section className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-indigo-900">Tenes un viaje en curso</p>
+              <p className="mt-1 text-sm text-indigo-800">
+                {activeRide.origin_address ?? activeRide.origin} {"->"} {activeRide.destination_address ?? activeRide.destination}
+              </p>
+            </div>
+            <StatusBadge status={activeRide.status} />
+          </div>
+          <Link
+            href={`/driver/viaje/${activeRide.id}`}
+            className="mt-3 inline-flex rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          >
+            Continuar viaje
+          </Link>
+        </section>
+      ) : null}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 className="text-base font-semibold text-slate-900">Historial reciente</h3>
+        <div className="mt-3 space-y-2">
+          {recentRides.length === 0 ? (
+            <p className="text-sm text-slate-600">Todavia no tenes viajes finalizados o cancelados.</p>
+          ) : (
+            recentRides.map((ride) => (
+              <article key={ride.id} className="rounded-xl border border-slate-200 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-900">
+                    {ride.from_neighborhood ?? "-"} {"->"} {ride.to_neighborhood ?? "-"}
+                  </p>
+                  <StatusBadge status={ride.status} />
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{formatDateTime(ride.created_at)}</p>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
+
       <DriverVehicleCard
-        title="Mi vehículo"
+        title="Mi vehiculo"
         fullName={profile.full_name}
         phone={profile.phone}
         vehiclePlate={profile.vehicle_plate}
