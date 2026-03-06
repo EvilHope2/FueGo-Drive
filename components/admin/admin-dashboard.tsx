@@ -9,15 +9,19 @@ import { PaymentMethodBadge } from "@/components/common/payment-method-badge";
 import { SettlementStatusBadge } from "@/components/common/settlement-status-badge";
 import { StatusBadge } from "@/components/common/status-badge";
 import { RIDE_STATUSES } from "@/lib/constants";
+import { logAdminAction } from "@/lib/admin-audit";
 import { createClient } from "@/lib/supabase/client";
-import type { Ride } from "@/lib/types";
+import type { AdminActionLog, Ride } from "@/lib/types";
 import { formatCurrencyARS, formatDateTime } from "@/lib/utils";
 
 type Props = {
   initialRides: Ride[];
+  suspendedDrivers: number;
+  pendingAffiliatePayouts: number;
+  actionLogs: AdminActionLog[];
 };
 
-export function AdminDashboard({ initialRides }: Props) {
+export function AdminDashboard({ initialRides, suspendedDrivers, pendingAffiliatePayouts, actionLogs }: Props) {
   const [rides, setRides] = useState(initialRides);
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
   const [paymentFilter, setPaymentFilter] = useState<string>("Todos");
@@ -58,6 +62,12 @@ export function AdminDashboard({ initialRides }: Props) {
     const { data } = await supabase.from("rides").update({ status: "Cancelado" }).eq("id", id).select("*").single();
     if (data) {
       setRides((prev) => prev.map((ride) => (ride.id === id ? ({ ...ride, ...(data as Ride) } as Ride) : ride)));
+      await logAdminAction({
+        actionType: "ride_cancelled",
+        entityType: "ride",
+        entityId: id,
+        metadata: { status: "Cancelado" },
+      });
     }
   };
 
@@ -147,6 +157,37 @@ export function AdminDashboard({ initialRides }: Props) {
         </div>
       </section>
 
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Alertas operativas</h2>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <article className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-amber-700">Sin tomar</p>
+            <p className="mt-1 text-2xl font-semibold text-amber-900">{quickMetrics.requested}</p>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("Solicitado")}
+              className="mt-2 text-sm font-semibold text-amber-800 underline-offset-2 hover:underline"
+            >
+              Ver viajes solicitados
+            </button>
+          </article>
+          <article className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-rose-700">Conductores suspendidos</p>
+            <p className="mt-1 text-2xl font-semibold text-rose-900">{suspendedDrivers}</p>
+            <Link href="/admin/wallets" className="mt-2 inline-flex text-sm font-semibold text-rose-800 hover:underline">
+              Revisar wallets
+            </Link>
+          </article>
+          <article className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-sky-700">Pagos afiliados pendientes</p>
+            <p className="mt-1 text-2xl font-semibold text-sky-900">{pendingAffiliatePayouts}</p>
+            <Link href="/admin/afiliados" className="mt-2 inline-flex text-sm font-semibold text-sky-800 hover:underline">
+              Revisar afiliados
+            </Link>
+          </article>
+        </div>
+      </section>
+
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -230,6 +271,27 @@ export function AdminDashboard({ initialRides }: Props) {
                     Cancelar viaje
                   </button>
                 ) : null}
+              </article>
+            ))
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Auditoria admin</h2>
+        <div className="mt-4 space-y-2">
+          {actionLogs.length === 0 ? (
+            <EmptyState title="Sin acciones registradas" description="Cuando se registren acciones admin aparecen aca." />
+          ) : (
+            actionLogs.map((log) => (
+              <article key={log.id} className="rounded-xl border border-slate-200 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {log.action_type} | {log.entity_type} {log.entity_id ? `#${log.entity_id.slice(0, 8)}` : ""}
+                  </p>
+                  <p className="text-xs text-slate-500">{formatDateTime(log.created_at)}</p>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Admin: {log.admin_profile?.full_name ?? log.admin_id}</p>
               </article>
             ))
           )}

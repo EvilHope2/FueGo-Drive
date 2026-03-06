@@ -122,3 +122,14 @@ export type AffiliateEarning = {
   driver_profile?: Pick<Profile, "full_name"> | null;
   ride?: Pick<Ride, "id" | "status" | "created_at"> | null;
 };
+
+export type AdminActionLog = {
+  id: string;
+  admin_id: string;
+  action_type: string;
+  entity_type: string;
+  entity_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  admin_profile?: Pick<Profile, "full_name"> | null;
+};

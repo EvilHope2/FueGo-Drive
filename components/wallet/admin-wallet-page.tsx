@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { DebtSuspensionAlert } from "@/components/wallet/debt-suspension-alert";
 import { WalletBalanceBadge } from "@/components/wallet/wallet-balance-badge";
 import { WalletTransactionsTable } from "@/components/wallet/wallet-transactions-table";
+import { logAdminAction } from "@/lib/admin-audit";
 import { createClient } from "@/lib/supabase/client";
 import type { DriverWalletTransaction, WalletPaymentMethod } from "@/lib/types";
 import { calculateDriverWalletBalance, getDriverWalletStatus } from "@/lib/wallet";
@@ -71,6 +72,15 @@ export function AdminWalletPage({ drivers, transactions }: Props) {
     }
 
     toast.success("Movimiento registrado.");
+    await logAdminAction({
+      actionType: type === "payment" ? "wallet_payment_created" : "wallet_adjustment_created",
+      entityType: "driver_wallet_transaction",
+      metadata: {
+        driver_id: selectedDriver,
+        amount: normalizedAmount,
+        payment_method: method,
+      },
+    });
     setAmount("");
     setDescription("");
     setNotes("");
@@ -110,6 +120,14 @@ export function AdminWalletPage({ drivers, transactions }: Props) {
     }
 
     toast.success("Comisión pendiente descontada.");
+    await logAdminAction({
+      actionType: "wallet_pending_settled",
+      entityType: "driver_wallet_transaction",
+      metadata: {
+        driver_id: selectedDriver,
+        amount: pending,
+      },
+    });
     setLoading(false);
     router.refresh();
   };
