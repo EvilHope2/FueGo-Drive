@@ -139,6 +139,42 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
     if (applicable.length === 0) return null;
     return applicable.sort((a, b) => Number(b.discount_percent) - Number(a.discount_percent))[0];
   }, [promotions, hasFinalizedRide, estimate?.estimatedPrice, paymentMethodValue]);
+  const pricingPreview = useMemo(() => {
+    const baseEstimate = Number(estimate?.estimatedPrice ?? 0);
+    if (!baseEstimate) {
+      return {
+        estimatedFinal: 0,
+        discountAmount: 0,
+        discountPercent: 0,
+        promotionId: null as string | null,
+        originalAmount: 0,
+      };
+    }
+
+    if (!promoPreview) {
+      return {
+        estimatedFinal: baseEstimate,
+        discountAmount: 0,
+        discountPercent: 0,
+        promotionId: null as string | null,
+        originalAmount: baseEstimate,
+      };
+    }
+
+    let discountAmount = Math.round((baseEstimate * Number(promoPreview.discount_percent ?? 0)) / 100);
+    if (promoPreview.max_discount_amount != null) {
+      discountAmount = Math.min(discountAmount, Number(promoPreview.max_discount_amount));
+    }
+    discountAmount = Math.max(0, Math.min(discountAmount, baseEstimate));
+
+    return {
+      estimatedFinal: Math.max(baseEstimate - discountAmount, 0),
+      discountAmount,
+      discountPercent: Number(promoPreview.discount_percent ?? 0),
+      promotionId: promoPreview.id,
+      originalAmount: baseEstimate,
+    };
+  }, [estimate?.estimatedPrice, promoPreview]);
 
   const visibleRides = useMemo(() => {
     if (historyFilter === "activos") return rides.filter((ride) => !["Finalizado", "Cancelado"].includes(ride.status));
@@ -197,7 +233,43 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
       return;
     }
 
-    const economics = calculateRideEconomics(currentEstimate.estimatedPrice, false);
+    const currentPromo = (() => {
+      const now = new Date();
+      const applicable = promotions.filter((promo) => {
+        if (!promo.is_active || promo.deleted_at) return false;
+        if (promo.starts_at && new Date(promo.starts_at) > now) return false;
+        if (promo.ends_at && new Date(promo.ends_at) < now) return false;
+        if (promo.type === "first_ride" && hasFinalizedRide) return false;
+        if (promo.min_ride_amount != null && currentEstimate.estimatedPrice < Number(promo.min_ride_amount)) return false;
+        if (
+          values.paymentMethod &&
+          promo.allowed_payment_methods &&
+          promo.allowed_payment_methods.length > 0 &&
+          !promo.allowed_payment_methods.includes(values.paymentMethod)
+        ) {
+          return false;
+        }
+        return true;
+      });
+      if (applicable.length === 0) return null;
+      return applicable.sort((a, b) => Number(b.discount_percent) - Number(a.discount_percent))[0];
+    })();
+
+    let discountAmount = 0;
+    let discountPercent = 0;
+    let promotionId: string | null = null;
+    if (currentPromo) {
+      discountPercent = Number(currentPromo.discount_percent ?? 0);
+      discountAmount = Math.round((currentEstimate.estimatedPrice * discountPercent) / 100);
+      if (currentPromo.max_discount_amount != null) {
+        discountAmount = Math.min(discountAmount, Number(currentPromo.max_discount_amount));
+      }
+      discountAmount = Math.max(0, Math.min(discountAmount, currentEstimate.estimatedPrice));
+      promotionId = currentPromo.id;
+    }
+
+    const finalEstimated = Math.max(currentEstimate.estimatedPrice - discountAmount, 0);
+    const economics = calculateRideEconomics(finalEstimated, false);
     const supabase = createClient();
 
     await supabase.from("profiles").update({ full_name: values.customerName, phone: values.customerPhone }).eq("id", profile.id);
@@ -214,7 +286,12 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
         from_neighborhood: values.fromNeighborhood,
         to_zone: currentEstimate.toZone,
         to_neighborhood: values.toNeighborhood,
-        estimated_price: currentEstimate.estimatedPrice,
+        estimated_price: finalEstimated,
+        promotion_id: promotionId,
+        discount_percent: discountPercent,
+        discount_amount: discountAmount,
+        original_amount: currentEstimate.estimatedPrice,
+        final_amount: finalEstimated,
         affiliate_commission_percent: economics.affiliateCommissionPercent,
         affiliate_commission_amount: economics.affiliateCommissionAmount,
         admin_commission_percent: economics.adminCommissionPercent,
@@ -426,7 +503,7 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
               <p className="mt-1 text-sm text-slate-700">Destino: {toNeighborhood || "-"} | {destinationValue || "-"}</p>
               <p className="mt-1 text-sm text-slate-700">Metodo de pago: {paymentMethodLabel}</p>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-700">
-                <p>Estimado: {formatCurrencyARS(estimate?.estimatedPrice ?? null)}</p>
+                <p>Estimado: {formatCurrencyARS(pricingPreview.estimatedFinal || null)}</p>
                 {promoPreview && estimate?.estimatedPrice ? (
                   <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                     {promoPreview.discount_percent}% OFF

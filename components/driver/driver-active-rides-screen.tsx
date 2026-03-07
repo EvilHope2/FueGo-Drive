@@ -213,7 +213,7 @@ export function DriverActiveRidesScreen({
                   </div>
                   <div className="mt-2">
                     <RidePriceSummary
-                      estimatedPrice={ride.estimated_price}
+                      estimatedPrice={ride.final_amount ?? ride.estimated_price}
                       commissionAmount={ride.commission_amount}
                       driverEarnings={ride.driver_earnings}
                       commissionPercent={ride.commission_percent}
@@ -257,7 +257,7 @@ export function DriverActiveRidesScreen({
                   </div>
                   <div className="mt-2">
                     <RidePriceSummary
-                      estimatedPrice={ride.estimated_price}
+                      estimatedPrice={ride.final_amount ?? ride.estimated_price}
                       commissionAmount={ride.commission_amount}
                       driverEarnings={ride.driver_earnings}
                       commissionPercent={ride.commission_percent}
