@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { EmptyState } from "@/components/common/empty-state";
-import { RidePriceSummary } from "@/components/common/ride-price-summary";
 import { StatusBadge } from "@/components/common/status-badge";
 import { ALL_NEIGHBORHOODS, ZONE_NEIGHBORHOODS } from "@/lib/constants";
 import { calculateEstimatedRidePrice, calculateRideEconomics, toPriceNumber } from "@/lib/pricing";
@@ -426,10 +425,10 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
               <p className="mt-2 text-sm text-slate-700">Origen: {fromNeighborhood || "-"} | {originValue || "-"}</p>
               <p className="mt-1 text-sm text-slate-700">Destino: {toNeighborhood || "-"} | {destinationValue || "-"}</p>
               <p className="mt-1 text-sm text-slate-700">Metodo de pago: {paymentMethodLabel}</p>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <RidePriceSummary estimatedPrice={estimate?.estimatedPrice ?? null} />
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-700">
+                <p>Estimado: {formatCurrencyARS(estimate?.estimatedPrice ?? null)}</p>
                 {promoPreview && estimate?.estimatedPrice ? (
-                  <span className="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                     {promoPreview.discount_percent}% OFF
                   </span>
                 ) : null}
