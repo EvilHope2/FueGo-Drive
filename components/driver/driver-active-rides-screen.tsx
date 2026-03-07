@@ -217,6 +217,10 @@ export function DriverActiveRidesScreen({
                       commissionAmount={ride.commission_amount}
                       driverEarnings={ride.driver_earnings}
                       commissionPercent={ride.commission_percent}
+                      adminCommissionAmount={ride.admin_commission_amount}
+                      adminCommissionPercent={ride.admin_commission_percent}
+                      affiliateCommissionAmount={ride.affiliate_commission_amount}
+                      affiliateCommissionPercent={ride.affiliate_commission_percent}
                       showBreakdown
                     />
                   </div>
@@ -261,6 +265,10 @@ export function DriverActiveRidesScreen({
                       commissionAmount={ride.commission_amount}
                       driverEarnings={ride.driver_earnings}
                       commissionPercent={ride.commission_percent}
+                      adminCommissionAmount={ride.admin_commission_amount}
+                      adminCommissionPercent={ride.admin_commission_percent}
+                      affiliateCommissionAmount={ride.affiliate_commission_amount}
+                      affiliateCommissionPercent={ride.affiliate_commission_percent}
                       showBreakdown
                     />
                   </div>

@@ -5,6 +5,10 @@ type Props = {
   commissionAmount?: number | null;
   driverEarnings?: number | null;
   commissionPercent?: number | null;
+  adminCommissionAmount?: number | null;
+  adminCommissionPercent?: number | null;
+  affiliateCommissionAmount?: number | null;
+  affiliateCommissionPercent?: number | null;
   showBreakdown?: boolean;
 };
 
@@ -13,16 +17,47 @@ export function RidePriceSummary({
   commissionAmount,
   driverEarnings,
   commissionPercent,
+  adminCommissionAmount,
+  adminCommissionPercent,
+  affiliateCommissionAmount,
+  affiliateCommissionPercent,
   showBreakdown = false,
 }: Props) {
+  const hasSplitCommission =
+    (adminCommissionAmount != null || adminCommissionPercent != null) &&
+    (affiliateCommissionAmount != null || affiliateCommissionPercent != null);
+  const resolvedAdminAmount = Number(adminCommissionAmount ?? commissionAmount ?? 0);
+  const resolvedAffiliateAmount = Number(affiliateCommissionAmount ?? 0);
+  const resolvedAdminPercent = Number(adminCommissionPercent ?? (hasSplitCommission ? 0 : commissionPercent ?? 0));
+  const resolvedAffiliatePercent = Number(affiliateCommissionPercent ?? 0);
+  const totalCommissionAmount = hasSplitCommission
+    ? resolvedAdminAmount + resolvedAffiliateAmount
+    : Number(commissionAmount ?? 0);
+  const totalCommissionPercent = hasSplitCommission
+    ? resolvedAdminPercent + resolvedAffiliatePercent
+    : Number(commissionPercent ?? 0);
+
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
       <p className="font-semibold text-slate-900">Estimado: {formatCurrencyARS(estimatedPrice)}</p>
       {showBreakdown ? (
         <>
           <p className="mt-1">
-            Comisión FueGo ({Math.round(commissionPercent ?? 0)}%): {formatCurrencyARS(commissionAmount ?? null)}
+            Comisión total ({Math.round(totalCommissionPercent)}%): {formatCurrencyARS(totalCommissionAmount)}
           </p>
+          {hasSplitCommission ? (
+            <>
+              <p className="mt-1">
+                Comisión FueGo ({Math.round(resolvedAdminPercent)}%): {formatCurrencyARS(resolvedAdminAmount)}
+              </p>
+              {resolvedAffiliatePercent > 0 || resolvedAffiliateAmount > 0 ? (
+                <p className="mt-1">
+                  Comisión afiliado ({Math.round(resolvedAffiliatePercent)}%):{" "}
+                  {formatCurrencyARS(resolvedAffiliateAmount)}
+                </p>
+              ) : null}
+            </>
+          ) : null}
           <p className="mt-1 font-medium text-slate-900">Ganancia conductor: {formatCurrencyARS(driverEarnings ?? null)}</p>
         </>
       ) : null}
