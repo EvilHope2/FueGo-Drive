@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/common/app-shell";
 import { CustomerDashboard } from "@/components/customer/customer-dashboard";
 import { requireProfile } from "@/lib/auth-server";
+import { createServiceClient } from "@/lib/supabase/service";
 import type { NeighborhoodSurcharge, Promotion, Ride, ZoneBasePrice } from "@/lib/types";
 
 export default async function CustomerAppPage() {
@@ -14,7 +15,9 @@ export default async function CustomerAppPage() {
 
   const { data: basePrices } = await supabase.from("zone_base_prices").select("*");
   const { data: surcharges } = await supabase.from("neighborhood_surcharges").select("*");
-  const { data: promotions } = await supabase
+  const serviceSupabase = createServiceClient();
+  const promotionsQueryClient = serviceSupabase ?? supabase;
+  const { data: promotions } = await promotionsQueryClient
     .from("promotions")
     .select("*")
     .eq("is_active", true)
