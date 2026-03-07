@@ -47,9 +47,14 @@ export default async function AdminAffiliatesPage() {
   return (
     <AppShell title="Afiliados" subtitle="Control de referidos y comisiones generadas." roleLabel="Admin">
       <div className="space-y-4">
-        <Link href="/admin" className="inline-flex text-sm font-medium text-indigo-700 hover:text-indigo-800">
-          Volver al panel admin
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/admin" className="inline-flex text-sm font-medium text-indigo-700 hover:text-indigo-800">
+            Volver al panel admin
+          </Link>
+          <Link href="/admin/afiliados/wallets" className="inline-flex text-sm font-medium text-indigo-700 hover:text-indigo-800">
+            Ver wallets de afiliados
+          </Link>
+        </div>
         <AffiliateAdminDashboard affiliates={rows} />
       </div>
     </AppShell>

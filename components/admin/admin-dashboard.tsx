@@ -155,6 +155,12 @@ export function AdminDashboard({ initialRides, suspendedDrivers, pendingAffiliat
             Ir a afiliados
           </Link>
           <Link
+            href="/admin/afiliados/wallets"
+            className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+          >
+            Wallets afiliados
+          </Link>
+          <Link
             href="/admin/promociones"
             className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
           >
