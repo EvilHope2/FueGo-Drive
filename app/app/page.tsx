@@ -1,7 +1,7 @@
 import { AppShell } from "@/components/common/app-shell";
 import { CustomerDashboard } from "@/components/customer/customer-dashboard";
 import { requireProfile } from "@/lib/auth-server";
-import type { NeighborhoodSurcharge, Ride, ZoneBasePrice } from "@/lib/types";
+import type { NeighborhoodSurcharge, Promotion, Ride, ZoneBasePrice } from "@/lib/types";
 
 export default async function CustomerAppPage() {
   const { supabase, profile } = await requireProfile("customer");
@@ -14,6 +14,12 @@ export default async function CustomerAppPage() {
 
   const { data: basePrices } = await supabase.from("zone_base_prices").select("*");
   const { data: surcharges } = await supabase.from("neighborhood_surcharges").select("*");
+  const { data: promotions } = await supabase
+    .from("promotions")
+    .select("*")
+    .eq("is_active", true)
+    .is("deleted_at", null)
+    .order("discount_percent", { ascending: false });
 
   return (
     <AppShell title="Panel cliente" subtitle="Solicita, segui y gestiona tus viajes en FueGo." roleLabel="Cliente">
@@ -22,6 +28,7 @@ export default async function CustomerAppPage() {
         initialRides={(rides ?? []) as Ride[]}
         basePrices={(basePrices ?? []) as ZoneBasePrice[]}
         surcharges={(surcharges ?? []) as NeighborhoodSurcharge[]}
+        promotions={(promotions ?? []) as Promotion[]}
       />
     </AppShell>
   );

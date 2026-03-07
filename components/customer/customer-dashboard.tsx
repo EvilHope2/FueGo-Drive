@@ -14,7 +14,7 @@ import { ALL_NEIGHBORHOODS, ZONE_NEIGHBORHOODS } from "@/lib/constants";
 import { calculateEstimatedRidePrice, calculateRideEconomics, toPriceNumber } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrencyARS, formatDateTime } from "@/lib/utils";
-import type { NeighborhoodSurcharge, Profile, Ride, ZoneBasePrice } from "@/lib/types";
+import type { NeighborhoodSurcharge, Profile, Promotion, Ride, ZoneBasePrice } from "@/lib/types";
 
 const schema = z.object({
   origin: z.string().min(3, "Ingresa origen"),
@@ -43,6 +43,7 @@ type Props = {
   initialRides: Ride[];
   basePrices: ZoneBasePrice[];
   surcharges: NeighborhoodSurcharge[];
+  promotions: Promotion[];
 };
 
 const FAVORITE_STORAGE_KEY = "fuego_customer_favorites_v1";
@@ -52,7 +53,7 @@ const FAVORITE_LABELS: Record<FavoriteSlot, string> = {
   other: "Otro",
 };
 
-export function CustomerDashboard({ profile, initialRides, basePrices, surcharges }: Props) {
+export function CustomerDashboard({ profile, initialRides, basePrices, surcharges, promotions }: Props) {
   const [rides, setRides] = useState(initialRides);
   const [loading, setLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -113,6 +114,32 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
   }, [fromNeighborhood, toNeighborhood, basePrices, surcharges]);
 
   const activeRide = useMemo(() => rides.find((ride) => !["Finalizado", "Cancelado"].includes(ride.status)), [rides]);
+  const hasFinalizedRide = useMemo(() => rides.some((ride) => ride.status === "Finalizado"), [rides]);
+
+  const promoPreview = useMemo(() => {
+    const now = new Date();
+    const estimatedPrice = estimate?.estimatedPrice ?? 0;
+
+    const applicable = promotions.filter((promo) => {
+      if (!promo.is_active || promo.deleted_at) return false;
+      if (promo.starts_at && new Date(promo.starts_at) > now) return false;
+      if (promo.ends_at && new Date(promo.ends_at) < now) return false;
+      if (promo.type === "first_ride" && hasFinalizedRide) return false;
+      if (promo.min_ride_amount != null && estimatedPrice < Number(promo.min_ride_amount)) return false;
+      if (
+        paymentMethodValue &&
+        promo.allowed_payment_methods &&
+        promo.allowed_payment_methods.length > 0 &&
+        !promo.allowed_payment_methods.includes(paymentMethodValue)
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    if (applicable.length === 0) return null;
+    return applicable.sort((a, b) => Number(b.discount_percent) - Number(a.discount_percent))[0];
+  }, [promotions, hasFinalizedRide, estimate?.estimatedPrice, paymentMethodValue]);
 
   const visibleRides = useMemo(() => {
     if (historyFilter === "activos") return rides.filter((ride) => !["Finalizado", "Cancelado"].includes(ride.status));
@@ -399,7 +426,14 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
               <p className="mt-2 text-sm text-slate-700">Origen: {fromNeighborhood || "-"} | {originValue || "-"}</p>
               <p className="mt-1 text-sm text-slate-700">Destino: {toNeighborhood || "-"} | {destinationValue || "-"}</p>
               <p className="mt-1 text-sm text-slate-700">Metodo de pago: {paymentMethodLabel}</p>
-              <RidePriceSummary estimatedPrice={estimate?.estimatedPrice ?? null} />
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <RidePriceSummary estimatedPrice={estimate?.estimatedPrice ?? null} />
+                {promoPreview && estimate?.estimatedPrice ? (
+                  <span className="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                    {promoPreview.discount_percent}% OFF
+                  </span>
+                ) : null}
+              </div>
               <p className="mt-1 text-sm text-slate-600">Zona: {estimate ? `${estimate.fromZone} -> ${estimate.toZone}` : "Selecciona barrios"}</p>
             </section>
 
