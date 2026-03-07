@@ -139,40 +139,52 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
     if (applicable.length === 0) return null;
     return applicable.sort((a, b) => Number(b.discount_percent) - Number(a.discount_percent))[0];
   }, [promotions, hasFinalizedRide, estimate?.estimatedPrice, paymentMethodValue]);
+  const applyPromoDiscount = (originalAmount: number, promo: Promotion | null) => {
+    if (!promo) {
+      return {
+        finalAmount: originalAmount,
+        discountAmount: 0,
+        discountPercent: 0,
+        promotionId: null as string | null,
+      };
+    }
+
+    const normalizedPercent = Math.max(0, Math.min(100, Math.abs(Number(promo.discount_percent ?? 0))));
+    let discountAmount = Math.round((originalAmount * normalizedPercent) / 100);
+    if (promo.max_discount_amount != null) {
+      discountAmount = Math.min(discountAmount, Math.max(0, Number(promo.max_discount_amount)));
+    }
+
+    discountAmount = Math.max(0, Math.min(discountAmount, originalAmount));
+    const finalAmount = Math.min(Math.max(originalAmount - discountAmount, 0), originalAmount);
+
+    return {
+      finalAmount,
+      discountAmount,
+      discountPercent: normalizedPercent,
+      promotionId: promo.id,
+    };
+  };
+
   const pricingPreview = useMemo(() => {
     const baseEstimate = Number(estimate?.estimatedPrice ?? 0);
     if (!baseEstimate) {
       return {
+        estimatedOriginal: 0,
         estimatedFinal: 0,
         discountAmount: 0,
         discountPercent: 0,
         promotionId: null as string | null,
-        originalAmount: 0,
       };
     }
 
-    if (!promoPreview) {
-      return {
-        estimatedFinal: baseEstimate,
-        discountAmount: 0,
-        discountPercent: 0,
-        promotionId: null as string | null,
-        originalAmount: baseEstimate,
-      };
-    }
-
-    let discountAmount = Math.round((baseEstimate * Number(promoPreview.discount_percent ?? 0)) / 100);
-    if (promoPreview.max_discount_amount != null) {
-      discountAmount = Math.min(discountAmount, Number(promoPreview.max_discount_amount));
-    }
-    discountAmount = Math.max(0, Math.min(discountAmount, baseEstimate));
-
+    const discounted = applyPromoDiscount(baseEstimate, promoPreview);
     return {
-      estimatedFinal: Math.max(baseEstimate - discountAmount, 0),
-      discountAmount,
-      discountPercent: Number(promoPreview.discount_percent ?? 0),
-      promotionId: promoPreview.id,
-      originalAmount: baseEstimate,
+      estimatedOriginal: baseEstimate,
+      estimatedFinal: discounted.finalAmount,
+      discountAmount: discounted.discountAmount,
+      discountPercent: discounted.discountPercent,
+      promotionId: discounted.promotionId,
     };
   }, [estimate?.estimatedPrice, promoPreview]);
 
@@ -255,20 +267,8 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
       return applicable.sort((a, b) => Number(b.discount_percent) - Number(a.discount_percent))[0];
     })();
 
-    let discountAmount = 0;
-    let discountPercent = 0;
-    let promotionId: string | null = null;
-    if (currentPromo) {
-      discountPercent = Number(currentPromo.discount_percent ?? 0);
-      discountAmount = Math.round((currentEstimate.estimatedPrice * discountPercent) / 100);
-      if (currentPromo.max_discount_amount != null) {
-        discountAmount = Math.min(discountAmount, Number(currentPromo.max_discount_amount));
-      }
-      discountAmount = Math.max(0, Math.min(discountAmount, currentEstimate.estimatedPrice));
-      promotionId = currentPromo.id;
-    }
-
-    const finalEstimated = Math.max(currentEstimate.estimatedPrice - discountAmount, 0);
+    const discounted = applyPromoDiscount(currentEstimate.estimatedPrice, currentPromo);
+    const finalEstimated = discounted.finalAmount;
     const economics = calculateRideEconomics(finalEstimated, false);
     const supabase = createClient();
 
@@ -287,9 +287,9 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
         to_zone: currentEstimate.toZone,
         to_neighborhood: values.toNeighborhood,
         estimated_price: finalEstimated,
-        promotion_id: promotionId,
-        discount_percent: discountPercent,
-        discount_amount: discountAmount,
+        promotion_id: discounted.promotionId,
+        discount_percent: discounted.discountPercent,
+        discount_amount: discounted.discountAmount,
         original_amount: currentEstimate.estimatedPrice,
         final_amount: finalEstimated,
         affiliate_commission_percent: economics.affiliateCommissionPercent,
@@ -510,6 +510,12 @@ export function CustomerDashboard({ profile, initialRides, basePrices, surcharge
                   </span>
                 ) : null}
               </div>
+              {promoPreview && pricingPreview.estimatedOriginal > 0 ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  Precio base: {formatCurrencyARS(pricingPreview.estimatedOriginal)} | Descuento:{" "}
+                  {formatCurrencyARS(pricingPreview.discountAmount)}
+                </p>
+              ) : null}
               <p className="mt-1 text-sm text-slate-600">Zona: {estimate ? `${estimate.fromZone} -> ${estimate.toZone}` : "Selecciona barrios"}</p>
             </section>
 
