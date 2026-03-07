@@ -32,7 +32,6 @@ export default async function DriverPage() {
 
   const walletTx = (walletTransactions ?? []) as Pick<DriverWalletTransaction, "amount" | "created_at">[];
   const balance = Number(calculateDriverWalletBalance(walletTx.map((item) => Number(item.amount ?? 0))) ?? 0);
-  const pendingCommission = Number(Math.min(0, balance));
   const totalPayments = Number(
     walletTx
       .filter((item) => Number(item.amount ?? 0) > 0)
@@ -51,7 +50,6 @@ export default async function DriverPage() {
         walletBalance={balance}
         walletLimitNegative={walletLimitNegative}
         isSuspended={isSuspended}
-        pendingCommission={pendingCommission}
         totalPayments={totalPayments}
         latestMovementAt={latestMovementAt}
         activeRide={(activeRides?.[0] as Ride | undefined) ?? null}

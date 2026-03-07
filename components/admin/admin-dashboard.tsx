@@ -154,6 +154,12 @@ export function AdminDashboard({ initialRides, suspendedDrivers, pendingAffiliat
           >
             Ir a afiliados
           </Link>
+          <Link
+            href="/admin/promociones"
+            className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+          >
+            Ir a promociones
+          </Link>
         </div>
       </section>
 
@@ -257,6 +263,8 @@ export function AdminDashboard({ initialRides, suspendedDrivers, pendingAffiliat
                   <p>Conductor: {ride.driver_profile?.full_name ?? "Sin asignar"}</p>
                   <p>Afiliado: {ride.affiliate_profile?.full_name ?? "Sin afiliado"}</p>
                   <p>Estimado: {formatCurrencyARS(ride.estimated_price ?? null)}</p>
+                  <p>Descuento promo: {formatCurrencyARS(ride.discount_amount ?? 0)}</p>
+                  <p>Final cobrado: {formatCurrencyARS(ride.final_amount ?? ride.estimated_price ?? null)}</p>
                   <p>Comision afiliado: {formatCurrencyARS(ride.affiliate_commission_amount ?? 0)}</p>
                   <p>Comision FueGo: {formatCurrencyARS(ride.admin_commission_amount ?? ride.commission_amount ?? null)}</p>
                   <p>Ganancia conductor: {formatCurrencyARS(ride.driver_earnings ?? null)}</p>

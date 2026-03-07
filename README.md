@@ -85,7 +85,8 @@ Copiar:
 ## Configurar Supabase
 1. Abrir SQL Editor.
 2. Ejecutar completo [`supabase/schema.sql`](./supabase/schema.sql).
-3. Verificar tablas: `profiles`, `rides`, `zone_base_prices`, `neighborhood_surcharges`, `app_settings`, `driver_wallet_transactions`.
+3. Para promociones admin, ejecutar [`supabase/sql/2026-03-admin-promotions.sql`](./supabase/sql/2026-03-admin-promotions.sql).
+4. Verificar tablas: `profiles`, `rides`, `zone_base_prices`, `neighborhood_surcharges`, `app_settings`, `driver_wallet_transactions`, `promotions`, `promotion_redemptions`.
 
 ## Funcionalidad principal
 - Roles: `customer`, `driver`, `admin`.
@@ -150,3 +151,4 @@ Privadas:
 - `/admin/liquidaciones`
 - `/admin/wallets`
 - `/admin/afiliados`
+- `/admin/promociones`

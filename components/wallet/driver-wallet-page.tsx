@@ -4,12 +4,12 @@ import { DebtSuspensionAlert } from "@/components/wallet/debt-suspension-alert";
 import { WalletBalanceBadge } from "@/components/wallet/wallet-balance-badge";
 import { WalletSummaryCard } from "@/components/wallet/wallet-summary-card";
 import { WalletTransactionsTable } from "@/components/wallet/wallet-transactions-table";
+import { getWalletBalanceCopy } from "@/lib/wallet";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import type { DriverWalletTransaction } from "@/lib/types";
 
 type Props = {
   balance: number;
-  pendingCommission: number;
   totalPayments: number;
   lastTransaction: DriverWalletTransaction | null;
   transactions: DriverWalletTransaction[];
@@ -19,7 +19,6 @@ type Props = {
 
 export function DriverWalletPage({
   balance,
-  pendingCommission,
   totalPayments,
   lastTransaction,
   transactions,
@@ -29,6 +28,7 @@ export function DriverWalletPage({
   const commissionAlias = "Fuegodriver";
   const paidCommissionMessage = "ya pague mi comision de FueGo te adjunto el comprobante de pago";
   const paidCommissionHref = buildWhatsAppLink(supportPhone, paidCommissionMessage);
+  const walletCopy = getWalletBalanceCopy(balance);
 
   return (
     <div className="space-y-6">
@@ -43,18 +43,13 @@ export function DriverWalletPage({
           <h2 className="text-lg font-semibold text-slate-900">Wallet del conductor</h2>
           <WalletBalanceBadge balance={balance} />
         </div>
-        <p className="mt-1 text-sm text-slate-600">
-          {balance < 0
-            ? "Este es el total pendiente que debés abonar a FueGo."
-            : balance === 0
-              ? "Estás al día con FueGo."
-              : "Tenés saldo a favor."}
-        </p>
+        <p className="mt-2 text-base font-semibold text-slate-900">{walletCopy.title}</p>
+        <p className="mt-1 text-sm text-slate-600">{walletCopy.subtitle}</p>
       </section>
 
       <div className="grid gap-3 md:grid-cols-3">
         <WalletSummaryCard title="Saldo actual" value={balance} />
-        <WalletSummaryCard title="Comisiones pendientes" value={pendingCommission}>
+        <WalletSummaryCard title={walletCopy.cardTitle} value={walletCopy.cardValue}>
           <p className="mt-2 text-xs text-slate-600">Alias: {commissionAlias} | Titular: Nahuel David Ramos</p>
           <a
             href={paidCommissionHref}

@@ -16,7 +16,6 @@ export default async function DriverWalletRoute() {
 
   const tx = (transactions ?? []) as DriverWalletTransaction[];
   const balance = Number(calculateDriverWalletBalance(tx.map((item) => Number(item.amount ?? 0))) ?? 0);
-  const pendingCommission = Number(Math.min(0, balance));
   const totalPayments = Number(
     tx
       .filter((item) => Number(item.amount ?? 0) > 0)
@@ -29,7 +28,6 @@ export default async function DriverWalletRoute() {
     <AppShell title="Wallet" subtitle="Cuenta corriente con FueGo." roleLabel="Conductor">
       <DriverWalletPage
         balance={balance}
-        pendingCommission={pendingCommission}
         totalPayments={totalPayments}
         lastTransaction={tx[0] ?? null}
         transactions={tx}

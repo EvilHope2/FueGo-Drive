@@ -19,7 +19,16 @@ export function WalletTransactionsTable({ transactions }: Props) {
       {transactions.map((tx) => (
         <article key={tx.id} className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-slate-900">{tx.description}</p>
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                  tx.amount < 0 ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
+                }`}
+              >
+                {tx.amount < 0 ? "Débito" : "Crédito"}
+              </span>
+              <p className="text-sm font-semibold text-slate-900">{tx.description}</p>
+            </div>
             <p className={`text-sm font-semibold ${tx.amount < 0 ? "text-rose-700" : "text-emerald-700"}`}>
               {formatCurrencyARS(tx.amount)}
             </p>

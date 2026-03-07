@@ -11,14 +11,13 @@ import { DebtSuspensionAlert } from "@/components/wallet/debt-suspension-alert";
 import { WalletSummaryCard } from "@/components/wallet/wallet-summary-card";
 import type { Profile, Ride } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
-import { shouldSuspendDriver } from "@/lib/wallet";
+import { getWalletBalanceCopy, shouldSuspendDriver } from "@/lib/wallet";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 type Props = {
   walletBalance: number;
   walletLimitNegative: number;
   isSuspended: boolean;
-  pendingCommission: number;
   totalPayments: number;
   latestMovementAt: string | null;
   activeRide: Ride | null;
@@ -30,7 +29,6 @@ export function DriverDashboard({
   walletBalance,
   walletLimitNegative,
   isSuspended,
-  pendingCommission,
   totalPayments,
   latestMovementAt,
   activeRide,
@@ -38,6 +36,7 @@ export function DriverDashboard({
   profile,
 }: Props) {
   const blockedByDebt = isSuspended || shouldSuspendDriver(walletBalance, walletLimitNegative);
+  const walletCopy = getWalletBalanceCopy(walletBalance);
   const commissionAlias = "Fuegodriver";
   const supportPhone = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "";
   const paidCommissionMessage = "ya pague mi comision de FueGo te adjunto el comprobante de pago";
@@ -82,7 +81,7 @@ export function DriverDashboard({
 
       <section className="grid gap-3 md:grid-cols-3">
         <WalletSummaryCard title="Saldo actual" value={walletBalance} />
-        <WalletSummaryCard title="Comisiones pendientes" value={pendingCommission}>
+        <WalletSummaryCard title={walletCopy.cardTitle} value={walletCopy.cardValue} caption={walletCopy.subtitle}>
           <button
             type="button"
             onClick={copyCommissionAlias}

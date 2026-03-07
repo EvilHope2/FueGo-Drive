@@ -26,6 +26,7 @@ export type Profile = {
 };
 
 export type RidePaymentMethod = "cash" | "transfer";
+export type PromotionType = "first_ride" | "general";
 
 export type Ride = {
   id: string;
@@ -40,6 +41,11 @@ export type Ride = {
   to_zone: ZoneName | null;
   to_neighborhood: string | null;
   estimated_price: number | null;
+  promotion_id?: string | null;
+  discount_percent?: number | null;
+  discount_amount?: number | null;
+  original_amount?: number | null;
+  final_amount?: number | null;
   affiliate_id?: string | null;
   affiliate_commission_percent?: number | null;
   affiliate_commission_amount?: number | null;
@@ -66,6 +72,40 @@ export type Ride = {
   customer_profile?: Pick<Profile, "full_name" | "phone"> | null;
   driver_profile?: Pick<Profile, "full_name" | "phone" | "vehicle_plate" | "vehicle_brand" | "vehicle_model_year"> | null;
   affiliate_profile?: Pick<Profile, "full_name" | "affiliate_code"> | null;
+};
+
+export type Promotion = {
+  id: string;
+  name: string;
+  description: string | null;
+  type: PromotionType;
+  discount_percent: number;
+  max_discount_amount: number | null;
+  min_ride_amount: number | null;
+  max_uses_total: number | null;
+  max_uses_per_user: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  allowed_payment_methods: string[] | null;
+  message: string | null;
+  is_active: boolean;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PromotionRedemption = {
+  id: string;
+  promotion_id: string;
+  ride_id: string;
+  customer_id: string;
+  discount_percent: number;
+  discount_amount: number;
+  original_amount: number;
+  final_amount: number;
+  created_at: string;
+  promotion_name?: string;
+  customer_name?: string;
 };
 
 export type ZoneBasePrice = {
